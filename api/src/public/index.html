@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Store Inventory</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="hero">
+    <div>
+        <p class="eyebrow">Inventory Dashboard</p>
+        <h1>Store inventory</h1>
+        <p class="subtitle">Track what you have available at a glance. Add, edit, and delete controls are placeholders for now.</p>
+    </div>
+    <div class="hero-actions">
+        <a id="add-item-btn" class="btn primary" href="/add-item.html">Add item</a>
+    </div>
+</header>
+
+<main class="container">
+    <section class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Inventory</h2>
+                <p class="muted">Data loads from the API when available; otherwise sample data is shown.</p>
+            </div>
+            <div id="status-message" class="status muted">Loading inventory…</div>
+        </div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                <tr>
+                    <th>Item name</th>
+                    <th>Description</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th class="actions-col">Actions</th>
+                </tr>
+                </thead>
+                <tbody id="items-body">
+                <tr>
+                    <td colspan="5" class="muted center">Loading…</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<script src="/main.js" defer></script>
+</body>
+</html>
