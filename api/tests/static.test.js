@@ -18,7 +18,7 @@ describe("Static assets", () => {
         expect(res.text).toMatch(/Store inventory/i);
     });
 
-    test("GET /add-item.html serves the add-item placeholder page", async () => {
+    test("GET /add-item.html serves the add-item page", async () => {
         const { app } = makeTestApp();
         const res = await request(app).get("/add-item.html");
 
