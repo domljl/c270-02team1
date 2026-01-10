@@ -92,13 +92,20 @@ describe("Database", () => {
             db.close();
         });
 
-        test("enables WAL mode", () => {
-            const db = openDb({ filename: ":memory:" });
-            
-            const journalMode = db.pragma("journal_mode", { simple: true });
-            expect(journalMode.toLowerCase()).toBe("wal");
-            
-            db.close();
+        test("enables WAL mode for file-backed databases", () => {
+            const tempPath = path.join(__dirname, "wal-mode-test.db");
+            try {
+                const db = openDb({ filename: tempPath });
+                const journalMode = db.pragma("journal_mode", { simple: true });
+                expect(journalMode.toLowerCase()).toBe("wal");
+                db.close();
+            } finally {
+                if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+                const shmFile = tempPath + "-shm";
+                const walFile = tempPath + "-wal";
+                if (fs.existsSync(shmFile)) fs.unlinkSync(shmFile);
+                if (fs.existsSync(walFile)) fs.unlinkSync(walFile);
+            }
         });
     });
 

@@ -18,13 +18,13 @@ describe("Static assets", () => {
         expect(res.text).toMatch(/Store inventory/i);
     });
 
-    test("GET /add-item.html serves the add-item placeholder page", async () => {
+    test("GET /add-item.html serves the add-item page", async () => {
         const { app } = makeTestApp();
         const res = await request(app).get("/add-item.html");
 
         expect(res.status).toBe(200);
         expect(res.headers["content-type"]).toMatch(/html/);
-        expect(res.text).toMatch(/Coming soon/i);
+        expect(res.text).toMatch(/Add New Item/i);
     });
 
     test("GET /styles.css returns stylesheet", async () => {
