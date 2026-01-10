@@ -259,7 +259,7 @@ describe("End-to-End Workflows", () => {
 
             const files = [
                 { path: "/", contentType: /html/, content: /inventory/i },
-                { path: "/add-item.html", contentType: /html/, content: /add new item/i },
+                { path: "/add-item.html", contentType: /html/, content: /coming soon/i },
                 { path: "/styles.css", contentType: /css/, content: /hero/ },
                 { path: "/main.js", contentType: /javascript/, content: /fetchInventory/ },
             ];
