@@ -18,9 +18,9 @@ function createApp({ db }) {
 
     // Get all items (JSON API)
     app.get("/items", (req, res) => {
-        const items = db.prepare(
-            "SELECT id, name, sku, description, price, quantity FROM items ORDER BY id DESC"
-        ).all();
+        const items = db
+            .prepare("SELECT id, name, sku, description, price, quantity FROM items ORDER BY id DESC")
+            .all();
         res.json(items);
     });
 
