@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Item (Coming Soon)</title>
+    <title>Add Item</title>
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
 <header class="hero">
     <div>
         <p class="eyebrow">Inventory Dashboard</p>
-        <h1>Add item</h1>
-        <p class="subtitle">This page will be built by a teammate. For now, return to the inventory list.</p>
+        <h1>Add New Item</h1>
     </div>
     <div class="hero-actions">
         <a class="btn ghost" href="/">Back to inventory</a>
@@ -20,11 +19,60 @@
 
 <main class="container">
     <section class="panel center">
-        <h2>Coming soon</h2>
-        <p class="muted">Add-item flow will be implemented by the team. No actions are available yet.</p>
-        <div style="margin-top: 16px;">
-            <a class="btn primary" href="/">Return home</a>
-        </div>
+        <form id="itemForm">
+            <label>Product Name:</label><br>
+            <input type="text" id="name" required><br><br>
+
+            <label>Description:</label><br>
+            <input type="text" id="description" required><br><br>
+
+            <label>Price:</label><br>
+            <input type="number" id="price" step="0.01" required><br><br>
+
+            <label>Quantity:</label><br>
+            <input type="number" id="quantity" required><br><br>
+
+            <button type="submit" class="btn primary">Add Item</button>
+        </form>
+        <!--Feedback Message-->
+         <p id="feedbackMsg" style="display:none; margin-top:20px; font-weight:bold;"></p>
+        <script>
+        document.getElementById('itemForm').addEventListener('submit', async function(e) {
+        e.preventDefault(); // prevent page reload
+
+        const data = {
+            name: document.getElementById('name').value,
+            description: document.getElementById('description').value,
+            price: parseFloat(document.getElementById('price').value),
+            quantity: parseInt(document.getElementById('quantity').value)
+        };
+
+        try {
+            const response = await fetch('/addItem', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+        if (response.ok) {
+            document.getElementById('feedbackMsg').textContent = "Item Added Successfully!";
+            document.getElementById('feedbackMsg').style.color = "green";
+            document.getElementById('feedbackMsg').style.display = "block";
+            this.reset();
+        } else {
+            const msg = await response.text();
+            document.getElementById('feedbackMsg').textContent = "Error: " + msg;
+            document.getElementById('feedbackMsg').style.color = "red";
+            document.getElementById('feedbackMsg').style.display = "block";
+        }
+    } catch (err) {
+        console.error("Error saving item:", err);
+        document.getElementById('feedbackMsg').textContent = "Server error";
+        document.getElementById('feedbackMsg').style.color = "red";
+        document.getElementById('feedbackMsg').style.display = "block";
+    }
+});
+</script> 
     </section>
 </main>
 </body>
