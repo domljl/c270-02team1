@@ -24,7 +24,7 @@ describe("Static assets", () => {
 
         expect(res.status).toBe(200);
         expect(res.headers["content-type"]).toMatch(/html/);
-        expect(res.text).toMatch(/Coming soon/i);
+        expect(res.text).toMatch(/Add a new item/i);
     });
 
     test("GET /styles.css returns stylesheet", async () => {
