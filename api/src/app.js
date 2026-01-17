@@ -93,7 +93,7 @@ function createApp({ db }) {
     const { name, description, price, quantity } = req.body || {};
 
     // Basic validation
-    if (!name || !quantity) return res.status(400).send("Name and quantity required");
+    if (!name || quantity === undefined || quantity === "" || quantity === null) return res.status(400).send("Name and quantity required");
 
     // Generate SKU
     const sku = name.replace(/\s+/g, "-").toUpperCase() + "-" + Date.now();
