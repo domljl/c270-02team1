@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Item (Coming Soon)</title>
+    <title>Add Item</title>
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
 <header class="hero">
     <div>
         <p class="eyebrow">Inventory Dashboard</p>
-        <h1>Add item</h1>
-        <p class="subtitle">This page will be built by a teammate. For now, return to the inventory list.</p>
+        <h1>Add a new item</h1>
+        <p class="subtitle">Capture the basics so it is ready for the shelf.</p>
     </div>
     <div class="hero-actions">
         <a class="btn ghost" href="/">Back to inventory</a>
@@ -19,13 +19,98 @@
 </header>
 
 <main class="container">
-    <section class="panel center">
-        <h2>Coming soon</h2>
-        <p class="muted">Add-item flow will be implemented by the team. No actions are available yet.</p>
-        <div style="margin-top: 16px;">
-            <a class="btn primary" href="/">Return home</a>
+    <section class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Item details</h2>
+                <p class="muted">All fields are required. Price uses dollars; quantity uses whole numbers.</p>
+            </div>
+            <div id="feedbackMsg" class="status hidden"></div>
         </div>
+
+        <form id="itemForm" class="form-grid form-vertical">
+            <label>
+                Product name
+                <input type="text" id="name" name="name" placeholder="Wireless Mouse" required>
+            </label>
+
+            <label>
+                SKU
+                <input type="text" id="sku" name="sku" placeholder="WM-001" required>
+            </label>
+
+            <label>
+                Description
+                <input type="text" id="description" name="description" placeholder="Bluetooth optical mouse" required>
+            </label>
+
+            <label>
+                Price
+                <input type="number" id="price" name="price" step="0.01" min="0" placeholder="29.99" required>
+            </label>
+
+            <label>
+                Quantity
+                <input type="number" id="quantity" name="quantity" step="1" min="0" placeholder="10" required>
+            </label>
+
+            <div class="form-actions">
+                <button type="submit" class="btn primary" id="submitBtn">Add item</button>
+                <a class="btn ghost" href="/">Cancel</a>
+            </div>
+        </form>
     </section>
 </main>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("itemForm");
+    const feedback = document.getElementById("feedbackMsg");
+    const submitBtn = document.getElementById("submitBtn");
+
+    function setFeedback(message, tone = "success") {
+        feedback.textContent = message;
+        feedback.className = `status ${tone}`;
+        feedback.classList.remove("hidden");
+    }
+
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        submitBtn.disabled = true;
+        setFeedback("Saving item…", "muted");
+
+        const data = {
+            name: form.name.value.trim(),
+                sku: form.sku.value.trim(),
+            description: form.description.value.trim(),
+            price: Number.parseFloat(form.price.value),
+            quantity: Number.parseInt(form.quantity.value, 10),
+        };
+
+        try {
+            const res = await fetch("/items", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            });
+
+            if (!res.ok) {
+                const errorText = (await res.json().catch(() => ({}))).error || "Unable to save item";
+                setFeedback(errorText, "error");
+                return;
+            }
+
+            setFeedback("Item added successfully!", "success");
+            form.reset();
+        } catch (err) {
+            console.error("Error saving item:", err);
+            setFeedback("Server error. Please try again.", "error");
+        } finally {
+            submitBtn.disabled = false;
+        }
+    });
+});
+</script>
 </body>
 </html>

@@ -18,9 +18,9 @@ function createApp({ db }) {
 
     // Get all items (JSON API)
     app.get("/items", (req, res) => {
-        const items = db.prepare(
-            "SELECT id, name, sku, description, price, quantity FROM items ORDER BY id DESC"
-        ).all();
+        const items = db
+            .prepare("SELECT id, name, sku, description, price, quantity FROM items ORDER BY id DESC")
+            .all();
         res.json(items);
     });
 
@@ -88,33 +88,27 @@ function createApp({ db }) {
 
     // Show Add Item form
     // Handle Add Item form submission
-    // Handle Add Item form submission
     app.post("/addItem", (req, res) => {
-    const { name, description, price, quantity } = req.body || {};
+        const { name, description, price, quantity } = req.body || {};
 
-    // Basic validation
-    if (!name || !quantity) return res.status(400).send("Name and quantity required");
+        // Basic validation
+        if (!name || quantity === undefined || quantity === "" || quantity === null) {
+            return res.status(400).send("Name and quantity required");
+        }
 
-    // Generate SKU
-    const sku = name.replace(/\s+/g, "-").toUpperCase() + "-" + Date.now();
+        // Generate SKU
+        const sku = name.replace(/\s+/g, "-").toUpperCase() + "-" + Date.now();
 
-    try {
-        db.prepare(
-            "INSERT INTO items (name, sku, description, price, quantity) VALUES (?, ?, ?, ?, ?)"
-        ).run(
-            name,
-            sku,
-            description || "",
-            Number(price) || 0,
-            Number(quantity)
-        );
+        try {
+            db.prepare("INSERT INTO items (name, sku, description, price, quantity) VALUES (?, ?, ?, ?, ?)")
+                .run(name, sku, description || "", Number(price) || 0, Number(quantity));
 
-        res.status(200).send("Item added successfully");
-    } catch (err) {
-        console.error(err);
-        res.status(500).send("Server Error");
-    }
-});
+            res.status(200).send("Item added successfully");
+        } catch (err) {
+            console.error(err);
+            res.status(500).send("Server Error");
+        }
+    });
 
     return app;
 }
