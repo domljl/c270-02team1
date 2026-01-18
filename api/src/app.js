@@ -82,6 +82,30 @@ function createApp({ db }) {
         res.json(updated);
     });
 
+    // Delete item API
+    app.delete("/items", (req, res) => {
+        return res.status(400).json({ error: "invalid id" });
+    });
+    app.delete("/items/", (req, res) => {
+        return res.status(400).json({ error: "invalid id" });
+    });
+
+    app.delete("/items/:id", (req, res) => {
+        const id = Number(req.params.id);
+
+        if (!Number.isInteger(id) || id <= 0) {
+            return res.status(400).json({ error: "invalid id" });
+        }
+
+        const item = db.prepare("SELECT id FROM items WHERE id = ?").get(id);
+        if (!item) {
+            return res.status(404).json({ error: "not found" });
+        }
+
+        db.prepare("DELETE FROM items WHERE id = ?").run(id);
+        return res.status(200).json({ success: true });
+    });
+
     // =====================
     // Add Item Page Routes
     // =====================

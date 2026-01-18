@@ -1,18 +1,11 @@
-const statusEl = document.getElementById("status-message");
+const statusEl = null;
 const tableBody = document.getElementById("items-body");
+const modal = document.getElementById("confirm-modal");
+const confirmDeleteBtn = document.getElementById("confirm-delete");
+const cancelDeleteBtn = document.getElementById("cancel-delete");
+let pendingDeleteId = null;
 
-const SAMPLE_ITEMS = [
-    { name: "Wireless Mouse", description: "Bluetooth optical mouse", price: 29.99, quantity: 42 },
-    { name: "Mechanical Keyboard", description: "RGB switches, USB-C", price: 89.0, quantity: 18 },
-    { name: "27\" Monitor", description: "1440p IPS display", price: 279.5, quantity: 8 },
-    { name: "USB-C Hub", description: "7-port aluminum hub", price: 45.25, quantity: 26 },
-];
-
-function showStatus(message, tone = "muted") {
-    if (!statusEl) return;
-    statusEl.textContent = message;
-    statusEl.className = `status ${tone}`;
-}
+function showStatus() {}
 
 function formatPrice(value) {
     if (value === undefined || value === null) return "—";
@@ -69,9 +62,11 @@ function renderItems(items) {
         deleteBtn.className = "btn ghost small";
         deleteBtn.type = "button";
         deleteBtn.textContent = "Delete";
-        deleteBtn.title = "Delete functionality will be added later.";
-        deleteBtn.addEventListener("click", () => {
-            showStatus("Deleting items will be available later.", "warn");
+        deleteBtn.title = "Delete this item";
+        deleteBtn.addEventListener("click", async () => {
+            if (!item.id) return;
+            pendingDeleteId = item.id;
+            openModal();
         });
 
         actionGroup.appendChild(editBtn);
@@ -89,14 +84,13 @@ function renderItems(items) {
 }
 
 async function fetchInventory() {
-    showStatus("Loading inventory…", "muted");
-
     try {
         const res = await fetch("/items");
         if (!res.ok) throw new Error(`API returned ${res.status}`);
         const data = await res.json();
 
         const normalized = (data || []).map((item) => ({
+            id: item.id,
             name: item.name || "Untitled item",
             description: item.description || "—",
             price: item.price ?? null,
@@ -104,14 +98,51 @@ async function fetchInventory() {
         }));
 
         renderItems(normalized);
-        showStatus("Loaded inventory from the API.", "success");
     } catch (err) {
-        console.warn("Falling back to sample data:", err);
-        renderItems(SAMPLE_ITEMS);
-        showStatus("API not reachable yet. Showing sample data.", "warn");
+        console.warn("API not reachable:", err);
+        renderItems([]);
+        showStatus("API not reachable yet. No data loaded.", "warn");
     }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
     fetchInventory();
+
+    confirmDeleteBtn?.addEventListener("click", async () => {
+        if (!pendingDeleteId) {
+            closeModal();
+            return;
+        }
+        try {
+            const res = await fetch(`/items/${pendingDeleteId}`, { method: "DELETE" });
+            if (!res.ok) {
+                const errorText = (await res.json().catch(() => ({}))).error || "Unable to delete item";
+                showStatus(errorText, "error");
+                closeModal();
+                return;
+            }
+            showStatus("Item deleted successfully.", "success");
+            closeModal();
+            fetchInventory();
+        } catch (err) {
+            console.error("Error deleting item:", err);
+            showStatus("Server error while deleting item.", "error");
+            closeModal();
+        } finally {
+            pendingDeleteId = null;
+        }
+    });
+
+    cancelDeleteBtn?.addEventListener("click", () => {
+        pendingDeleteId = null;
+        closeModal();
+    });
 });
+
+function openModal() {
+    if (modal) modal.classList.remove("hidden");
+}
+
+function closeModal() {
+    if (modal) modal.classList.add("hidden");
+}
