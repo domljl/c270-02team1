@@ -1,0 +1,13 @@
+node_modules
+npm-debug.log*
+Dockerfile*
+.dockerignore
+coverage
+tests
+data
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+tmp
+logs
+.env*
