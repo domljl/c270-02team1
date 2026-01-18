@@ -5,7 +5,7 @@ const confirmDeleteBtn = document.getElementById("confirm-delete");
 const cancelDeleteBtn = document.getElementById("cancel-delete");
 let pendingDeleteId = null;
 
-function showStatus() {}
+function showStatus() { }
 
 function formatPrice(value) {
     if (value === undefined || value === null) return "—";
@@ -53,10 +53,11 @@ function renderItems(items) {
         editBtn.className = "btn ghost small";
         editBtn.type = "button";
         editBtn.textContent = "Edit";
-        editBtn.title = "Edit functionality will be added later.";
+        editBtn.title = "Edit Item Information";
         editBtn.addEventListener("click", () => {
-            showStatus("Editing items will be available later.", "warn");
+            window.location.href = `/edit-item.html?id=${item.id}`;
         });
+
 
         const deleteBtn = document.createElement("button");
         deleteBtn.className = "btn ghost small";

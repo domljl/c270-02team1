@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Item</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="hero">
+  <div>
+    <p class="eyebrow">Inventory Dashboard</p>
+    <h1>Edit item</h1>
+    <p class="subtitle">Update details to keep inventory accurate.</p>
+  </div>
+  <div class="hero-actions">
+    <a class="btn ghost" href="/">Back to inventory</a>
+  </div>
+</header>
+
+<main class="container">
+  <section class="panel">
+    <div class="panel-header">
+      <div>
+        <h2>Item details</h2>
+        <p class="muted">Adjust any fields below. Price uses dollars; quantity uses whole numbers.</p>
+      </div>
+      <div id="feedbackMsg" class="status hidden"></div>
+    </div>
+
+    <form id="editForm" class="form-grid form-vertical">
+      <label>
+        Product name
+        <input type="text" id="name" name="name" required>
+      </label>
+
+      <label>
+        SKU
+        <input type="text" id="sku" name="sku" required>
+      </label>
+
+      <label>
+        Description
+        <input type="text" id="description" name="description" required>
+      </label>
+
+      <label>
+        Price
+        <input type="number" id="price" name="price" step="0.01" min="0" required>
+      </label>
+
+      <label>
+        Quantity
+        <input type="number" id="quantity" name="quantity" step="1" min="0" required>
+      </label>
+
+      <div class="form-actions">
+        <button type="submit" class="btn primary" id="submitBtn">Save changes</button>
+        <a class="btn ghost" href="/">Cancel</a>
+      </div>
+    </form>
+  </section>
+</main>
+
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const form = document.getElementById("editForm");
+  const feedback = document.getElementById("feedbackMsg");
+  const submitBtn = document.getElementById("submitBtn");
+
+  // Assume item ID is passed in query string, e.g. /edit-item.html?id=5
+  const params = new URLSearchParams(window.location.search);
+  const itemId = params.get("id");
+
+  function setFeedback(message, tone = "success") {
+    feedback.textContent = message;
+    feedback.className = `status ${tone}`;
+    feedback.classList.remove("hidden");
+  }
+
+  // Load existing item data
+  try {
+    const res = await fetch(`/items/${itemId}`);
+    if (res.ok) {
+      const item = await res.json();
+      form.name.value = item.name;
+      form.sku.value = item.sku;
+      form.description.value = item.description;
+      form.price.value = item.price;
+      form.quantity.value = item.quantity;
+    } else {
+      setFeedback("Unable to load item", "error");
+    }
+  } catch (err) {
+    console.error(err);
+    setFeedback("Server error loading item", "error");
+  }
+
+  // Handle form submission
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    submitBtn.disabled = true;
+    setFeedback("Saving changes…", "muted");
+
+    const data = {
+      name: form.name.value.trim(),
+      sku: form.sku.value.trim(),
+      description: form.description.value.trim(),
+      price: Number.parseFloat(form.price.value),
+      quantity: Number.parseInt(form.quantity.value, 10),
+    };
+
+    try {
+      const res = await fetch(`/editItem/${itemId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) {
+        const errorText = (await res.json().catch(() => ({}))).error || "Unable to update item";
+        setFeedback(errorText, "error");
+        return;
+      }
+
+      setFeedback("Item updated successfully!", "success");
+    } catch (err) {
+      console.error("Error updating item:", err);
+      setFeedback("Server error. Please try again.", "error");
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+});
+</script>
+</body>
+</html>

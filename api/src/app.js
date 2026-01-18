@@ -134,7 +134,77 @@ function createApp({ db }) {
         }
     });
 
+       // =====================
+    // Edit Item Routes
+    // =====================
+
+    // Get a single item by ID
+    app.get("/items/:id", (req, res) => {
+        const id = Number(req.params.id);
+        if (!Number.isInteger(id)) {
+            return res.status(400).json({ error: "invalid id" });
+        }
+
+        const item = db
+            .prepare("SELECT id, name, sku, description, price, quantity FROM items WHERE id = ?")
+            .get(id);
+
+        if (!item) {
+            return res.status(404).json({ error: "not found" });
+        }
+
+        res.json(item);
+    });
+
+    // Edit/Update an item
+    app.post("/editItem/:id", (req, res) => {
+        const id = Number(req.params.id);
+        const { name, sku, description, price, quantity } = req.body || {};
+
+        if (!Number.isInteger(id)) {
+            return res.status(400).json({ error: "invalid id" });
+        }
+
+        const item = db
+            .prepare("SELECT id, name, sku, description, price, quantity FROM items WHERE id = ?")
+            .get(id);
+
+        if (!item) {
+            return res.status(404).json({ error: "Item not found" });
+        }
+
+        // Validation
+        if (quantity !== undefined && (!Number.isInteger(Number(quantity)) || Number(quantity) < 0)) {
+            return res.status(400).json({ error: "quantity must be a non-negative integer" });
+        }
+        const numericPrice = price !== undefined ? Number(price) : item.price;
+        if (Number.isNaN(numericPrice) || numericPrice < 0) {
+            return res.status(400).json({ error: "price must be a number >= 0" });
+        }
+
+        // Update
+        db.prepare(`
+            UPDATE items
+            SET name = ?, sku = ?, description = ?, price = ?, quantity = ?
+            WHERE id = ?
+        `).run(
+            name ?? item.name,
+            sku ?? item.sku,
+            description ?? item.description,
+            numericPrice,
+            quantity ?? item.quantity,
+            id
+        );
+
+        const updated = db
+            .prepare("SELECT id, name, sku, description, price, quantity FROM items WHERE id = ?")
+            .get(id);
+
+        res.json(updated);
+    });
+
     return app;
 }
+
 
 module.exports = { createApp };
