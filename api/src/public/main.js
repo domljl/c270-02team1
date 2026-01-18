@@ -3,7 +3,9 @@ const tableBody = document.getElementById("items-body");
 const modal = document.getElementById("confirm-modal");
 const confirmDeleteBtn = document.getElementById("confirm-delete");
 const cancelDeleteBtn = document.getElementById("cancel-delete");
+const searchInput = document.getElementById("search-input");
 let pendingDeleteId = null;
+let searchTimer = null;
 
 function showStatus() {}
 
@@ -83,9 +85,10 @@ function renderItems(items) {
     });
 }
 
-async function fetchInventory() {
+async function fetchInventory(query = "") {
     try {
-        const res = await fetch("/items");
+        const qs = query ? `?q=${encodeURIComponent(query)}` : "";
+        const res = await fetch(`/items${qs}`);
         if (!res.ok) throw new Error(`API returned ${res.status}`);
         const data = await res.json();
 
@@ -136,6 +139,16 @@ document.addEventListener("DOMContentLoaded", () => {
     cancelDeleteBtn?.addEventListener("click", () => {
         pendingDeleteId = null;
         closeModal();
+    });
+
+    searchInput?.addEventListener("input", (e) => {
+        const value = e.target.value || "";
+        if (searchTimer) {
+            clearTimeout(searchTimer);
+        }
+        searchTimer = setTimeout(() => {
+            fetchInventory(value.trim());
+        }, 250);
     });
 });
 
