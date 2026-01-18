@@ -4,6 +4,7 @@ on:
   push:
     branches: ["main"]
   pull_request:
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
@@ -33,6 +34,17 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      - name: Build Docker image (for smoke)
+        run: docker build -t inventory-api:test .
+
+      - name: Test Docker image
+        run: |
+          docker run -d --name test-container -p 3000:3000 -e DB_FILE=/tmp/test.db inventory-api:test
+          sleep 5
+          curl -f http://localhost:3000/health || exit 1
+          docker stop test-container
+          docker rm test-container
 
       - name: Generate test coverage
         run: npm test -- --coverage --coverageReporters=text --coverageReporters=lcov
@@ -86,6 +98,7 @@ jobs:
           context: ./api
           file: ./api/Dockerfile
           push: false
+          load: true
           tags: inventory-api:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
