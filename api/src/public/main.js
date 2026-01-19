@@ -1,3 +1,5 @@
+// Done by Dominic (24021835)
+
 const statusEl = null;
 const tableBody = document.getElementById("items-body");
 const modal = document.getElementById("confirm-modal");
