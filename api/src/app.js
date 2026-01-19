@@ -139,6 +139,11 @@ function createApp({ db }) {
             return res.status(400).send("Name and quantity required");
         }
 
+        // Ensure database is open
+        if (!db.open) {
+            return res.status(500).send("Server Error");
+        }
+
         // Generate SKU
         const sku = name.replace(/\s+/g, "-").toUpperCase() + "-" + Date.now();
 

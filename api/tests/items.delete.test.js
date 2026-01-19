@@ -40,6 +40,8 @@ describe("DELETE /items/:id - Delete Item Route", () => {
             // Verify item is actually removed from database
             const item = db.prepare("SELECT * FROM items WHERE id = ?").get(itemId);
             expect(item).toBeUndefined();
+            
+            db.close();
         });
 
         test("DELETE /items/:id successfully removes item with all fields populated", async () => {
@@ -59,6 +61,8 @@ describe("DELETE /items/:id - Delete Item Route", () => {
 
             const item = db.prepare("SELECT * FROM items WHERE id = ?").get(itemId);
             expect(item).toBeUndefined();
+            
+            db.close();
         });
 
         test("DELETE /items/:id removes item with zero quantity", async () => {
@@ -69,6 +73,8 @@ describe("DELETE /items/:id - Delete Item Route", () => {
 
             expect(res.status).toBe(200);
             expect(res.body).toEqual({ success: true });
+            
+            db.close();
         });
 
         test("DELETE /items/:id works with large item ID", async () => {
@@ -81,18 +87,22 @@ describe("DELETE /items/:id - Delete Item Route", () => {
 
             const res = await request(app).delete(`/items/${lastItemId}`);
 
+            
+            db.close();
             expect(res.status).toBe(200);
             expect(res.body.success).toBe(true);
         });
     });
 
-    describe("❌ Error Handling - Not Found Cases", () => {
-        test("DELETE /items/:id returns 404 when deleting non-existent item", async () => {
-            const { app } = makeTestApp();
+    describe("❌ Error H, db } = makeTestApp();
             const nonExistentId = 99999;
 
             const res = await request(app).delete(`/items/${nonExistentId}`);
 
+            expect(res.status).toBe(404);
+            expect(res.body).toEqual({ error: "not found" });
+            
+            db.close(
             expect(res.status).toBe(404);
             expect(res.body).toEqual({ error: "not found" });
         });
@@ -102,70 +112,88 @@ describe("DELETE /items/:id - Delete Item Route", () => {
             seedItem(db, { name: "Item 1" });
             seedItem(db, { name: "Item 2" });
 
+            
+            db.close();
             const res = await request(app).delete("/items/1000");
-
-            expect(res.status).toBe(404);
-            expect(res.body.error).toBe("not found");
-        });
-
-        test("DELETE /items/:id returns 404 when database is empty", async () => {
-            const { app } = makeTestApp();
+, db } = makeTestApp();
 
             const res = await request(app).delete("/items/1");
 
             expect(res.status).toBe(404);
             expect(res.body).toEqual({ error: "not found" });
-        });
-    });
-
-    describe("❌ Error Handling - Invalid ID Validation", () => {
-        test("DELETE /items/:id returns 400 for non-numeric ID", async () => {
+            
+            db.close(s empty", async () => {
             const { app } = makeTestApp();
+
+            const res = await request(app).delete("/items/1");
+
+            expect(res.status).toBe(404);
+            expect(res., db } = makeTestApp();
 
             const res = await request(app).delete("/items/abc");
 
             expect(res.status).toBe(400);
             expect(res.body).toEqual({ error: "invalid id" });
-        });
-
-        test("DELETE /items/:id returns 400 for decimal ID", async () => {
+            
+            db.close(ID", async () => {
             const { app } = makeTestApp();
+, db } = makeTestApp();
 
             const res = await request(app).delete("/items/12.5");
 
             expect(res.status).toBe(400);
             expect(res.body.error).toBe("invalid id");
-        });
+            
+            db.close(
 
-        test("DELETE /items/:id returns 400 for negative ID", async () => {
-            const { app } = makeTestApp();
+        test("DELETE /i, db } = makeTestApp();
 
             const res = await request(app).delete("/items/-1");
 
             expect(res.status).toBe(400);
             expect(res.body).toEqual({ error: "invalid id" });
+            
+            db.close(
+            expect(res.body.error).toBe("invalid id");
         });
 
-        test("DELETE /items/:id returns 400 for string with numbers", async () => {
-            const { app } = makeTestApp();
+        test("DELETE /i, db } = makeTestApp();
 
             const res = await request(app).delete("/items/123abc");
 
             expect(res.status).toBe(400);
             expect(res.body.error).toBe("invalid id");
-        });
-
-        test("DELETE /items/:id returns 400 for empty ID", async () => {
-            const { app } = makeTestApp();
+            
+            db.close(
+            expect(res.body).toEqual({ error: "invalid id" });
+        });, db } = makeTestApp();
 
             const res = await request(app).delete("/items/ ");
 
             expect(res.status).toBe(400);
             expect(res.body).toEqual({ error: "invalid id" });
-        });
+            
+            db.close(3abc");
 
-        test("DELETE /items/:id returns 400 for special characters", async () => {
-            const { app } = makeTestApp();
+            expect(res., db } = makeTestApp();
+
+            const res = await request(app).delete("/items/@#$");
+
+            expect(res.status).toBe(400);
+            expect(res.body.error).toBe("invalid id");
+            
+            db.close(
+
+            const res = await request(app).delete("/items/ ");
+
+            expect(res., db } = makeTestApp();
+
+            const res = await request(app).delete("/items/0");
+
+            expect(res.status).toBe(400);
+            expect(res.body).toEqual({ error: "invalid id" });
+            
+            db.close(
 
             const res = await request(app).delete("/items/@#$");
 
@@ -197,6 +225,8 @@ describe("DELETE /items/:id - Delete Item Route", () => {
             const secondRes = await request(app).delete(`/items/${itemId}`);
             expect(secondRes.status).toBe(404);
             expect(secondRes.body).toEqual({ error: "not found" });
+            
+            db.close();
         });
 
         test("DELETE /items/:id third attempt also returns 404", async () => {
@@ -213,6 +243,8 @@ describe("DELETE /items/:id - Delete Item Route", () => {
             const thirdRes = await request(app).delete(`/items/${itemId}`);
             expect(thirdRes.status).toBe(404);
             expect(thirdRes.body.error).toBe("not found");
+            
+            db.close();
         });
     });
 
@@ -235,6 +267,8 @@ describe("DELETE /items/:id - Delete Item Route", () => {
             expect(item1).toBeDefined();
             expect(item1.name).toBe("Keep Item 1");
             expect(item2).toBeUndefined();
+            
+            db.close();
             expect(item3).toBeDefined();
             expect(item3.name).toBe("Keep Item 3");
         });
@@ -250,6 +284,8 @@ describe("DELETE /items/:id - Delete Item Route", () => {
 
             await request(app).delete(`/items/${deleteId}`);
 
+            
+            db.close();
             const afterCount = db.prepare("SELECT COUNT(*) as count FROM items").get();
             expect(afterCount.count).toBe(2);
         });
@@ -262,6 +298,8 @@ describe("DELETE /items/:id - Delete Item Route", () => {
 
             await request(app).delete(`/items/${id1}`);
             await request(app).delete(`/items/${id2}`);
+            
+            db.close();
             await request(app).delete(`/items/${id3}`);
 
             const count = db.prepare("SELECT COUNT(*) as count FROM items").get();
@@ -277,16 +315,20 @@ describe("DELETE /items/:id - Delete Item Route", () => {
             // Simulate concurrent delete requests
             const [res1, res2] = await Promise.all([
                 request(app).delete(`/items/${itemId}`),
+            
+            db.close();
                 request(app).delete(`/items/${itemId}`),
             ]);
 
-            // One should succeed, one should fail
-            const statuses = [res1.status, res2.status].sort();
-            expect(statuses).toEqual([200, 404]);
-        });
-
-        test("DELETE /items/:id with query parameters still works", async () => {
             const { app, db } = makeTestApp();
+            const itemId = seedItem(db, { name: "Query Param Test" });
+
+            const res = await request(app).delete(`/items/${itemId}?force=true&reason=test`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.success).toBe(true);
+            
+            db.close();
             const itemId = seedItem(db, { name: "Query Param Test" });
 
             const res = await request(app).delete(`/items/${itemId}?force=true&reason=test`);
@@ -309,6 +351,8 @@ describe("DELETE /items/:id - Delete Item Route", () => {
 
             // Verify no trace in any field
             const byId = db.prepare("SELECT * FROM items WHERE id = ?").get(itemId);
+            
+            db.close();
             const bySku = db.prepare("SELECT * FROM items WHERE sku = ?").get("COMPLETE-SKU");
             const byName = db.prepare("SELECT * FROM items WHERE name = ?").get("Complete Test");
 
