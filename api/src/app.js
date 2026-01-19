@@ -18,9 +18,28 @@ function createApp({ db }) {
 
     // Get all items (JSON API)
     app.get("/items", (req, res) => {
-        const items = db
-            .prepare("SELECT id, name, sku, description, price, quantity FROM items ORDER BY id DESC")
-            .all();
+        const q = (req.query.query || req.query.q || "").trim().toLowerCase();
+
+        let items;
+        if (q) {
+            const like = `%${q}%`;
+            items = db
+                .prepare(
+                    `
+                SELECT id, name, sku, description, price, quantity
+                FROM items
+                WHERE lower(name) LIKE ?
+                   OR lower(sku) LIKE ?
+                   OR lower(description) LIKE ?
+                ORDER BY id DESC
+                `
+                )
+                .all(like, like, like);
+        } else {
+            items = db
+                .prepare("SELECT id, name, sku, description, price, quantity FROM items ORDER BY id DESC")
+                .all();
+        }
         res.json(items);
     });
 
@@ -118,6 +137,11 @@ function createApp({ db }) {
         // Basic validation
         if (!name || quantity === undefined || quantity === "" || quantity === null) {
             return res.status(400).send("Name and quantity required");
+        }
+
+        // Ensure database is open
+        if (!db.open) {
+            return res.status(500).send("Server Error");
         }
 
         // Generate SKU
