@@ -101,7 +101,7 @@ function createApp({ db }) {
         res.json(updated);
     });
 
-    // Delete item API
+    // Delete item API (Done by Dominic (24021835))
     app.delete("/items", (req, res) => {
         return res.status(400).json({ error: "invalid id" });
     });
