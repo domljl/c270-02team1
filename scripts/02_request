@@ -1,0 +1,15 @@
+# Run in background
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8080/ -m 2 \
+  | while read status; do
+      echo "HTTP $status"
+    done &
+
+# Kill one container to simulate failure
+CID=$(docker ps -q --filter "name=demo-stack_web")
+docker kill $CID
+
+# Wait for Swarm to recover
+sleep 10
+
+# Check service still healthy
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8080/ -m 2
