@@ -2,16 +2,28 @@ const request = require("supertest");
 const { openDb } = require("../src/db");
 const { createApp } = require("../src/app");
 
+const openDbs = [];
+
 function makeTestApp() {
     const db = openDb({ filename: ":memory:" });
+    openDbs.push(db);
     const app = createApp({ db });
     return { app, db };
 }
 
+afterEach(() => {
+    while (openDbs.length) {
+        const db = openDbs.pop();
+        try {
+            db.close();
+        } catch {}
+    }
+});
+
 describe("Add Item Form & POST /addItem Route", () => {
     describe("✅ Success Cases - Items Added Successfully", () => {
         test("POST /addItem creates item with all valid fields", async () => {
-            const { app, db } = makeTestApp();
+            const { app } = makeTestApp();
 
             const res = await request(app).post("/addItem").send({
                 name: "Wireless Mouse",
@@ -22,12 +34,10 @@ describe("Add Item Form & POST /addItem Route", () => {
 
             expect(res.status).toBe(200);
             expect(res.text).toContain("Item added successfully");
-            
-            db.close();
         });
 
         test("POST /addItem creates item with minimum required fields", async () => {
-            const { app, db } = makeTestApp();
+            const { app } = makeTestApp();
 
             const res = await request(app).post("/addItem").send({
                 name: "Keyboard",
@@ -36,12 +46,10 @@ describe("Add Item Form & POST /addItem Route", () => {
 
             expect(res.status).toBe(200);
             expect(res.text).toContain("Item added successfully");
-            
-            db.close();
         });
 
         test("POST /addItem creates item with zero quantity", async () => {
-            const { app, db } = makeTestApp();
+            const { app } = makeTestApp();
 
             const res = await request(app).post("/addItem").send({
                 name: "Out of Stock Item",
@@ -51,10 +59,10 @@ describe("Add Item Form & POST /addItem Route", () => {
 
             expect(res.status).toBe(200);
             expect(res.text).toContain("Item added successfully");
-            
-            db.close();
         });
-, db } = makeTestApp();
+
+        test("POST /addItem successfully adds item with description and price", async () => {
+            const { app } = makeTestApp();
 
             const res = await request(app).post("/addItem").send({
                 name: "USB Cable",
@@ -65,12 +73,10 @@ describe("Add Item Form & POST /addItem Route", () => {
 
             expect(res.status).toBe(200);
             expect(res.text).toContain("Item added successfully");
-            
-            db.close(
-            expect(res.status).toBe(200);
-            expect(res.text).toContain("Item added successfully");
         });
-, db } = makeTestApp();
+
+        test("POST /addItem handles decimal price correctly", async () => {
+            const { app } = makeTestApp();
 
             const res = await request(app).post("/addItem").send({
                 name: "Monitor",
@@ -80,10 +86,10 @@ describe("Add Item Form & POST /addItem Route", () => {
 
             expect(res.status).toBe(200);
             expect(res.text).toContain("Item added successfully");
-            
-            db.close(
-            expect(res.status).toBe(200);
-            expect(res., db } = makeTestApp();
+        });
+
+        test("POST /addItem accepts large quantity values", async () => {
+            const { app } = makeTestApp();
 
             const res = await request(app).post("/addItem").send({
                 name: "Pen",
@@ -93,18 +99,12 @@ describe("Add Item Form & POST /addItem Route", () => {
 
             expect(res.status).toBe(200);
             expect(res.text).toContain("Item added successfully");
-            
-            db.close(
-            });
-
-            expect(res.status).toBe(200);
-            expect(res.text).toContain("Item added successfully");
         });
     });
 
     describe("❌ Error Handling - Missing Required Fields", () => {
         test("POST /addItem returns 400 when name is missing", async () => {
-            const { app, db } = makeTestApp();
+            const { app } = makeTestApp();
 
             const res = await request(app).post("/addItem").send({
                 quantity: 10,
@@ -113,12 +113,10 @@ describe("Add Item Form & POST /addItem Route", () => {
 
             expect(res.status).toBe(400);
             expect(res.text).toContain("Name and quantity required");
-            
-            db.close();
         });
 
         test("POST /addItem returns 400 when quantity is missing", async () => {
-            const { app, db } = makeTestApp();
+            const { app } = makeTestApp();
 
             const res = await request(app).post("/addItem").send({
                 name: "Wireless Mouse",
@@ -127,12 +125,10 @@ describe("Add Item Form & POST /addItem Route", () => {
 
             expect(res.status).toBe(400);
             expect(res.text).toContain("Name and quantity required");
-            
-            db.close();
         });
 
         test("POST /addItem returns 400 when both name and quantity are missing", async () => {
-            const { app, db } = makeTestApp();
+            const { app } = makeTestApp();
 
             const res = await request(app).post("/addItem").send({
                 price: 29.99,
@@ -140,10 +136,10 @@ describe("Add Item Form & POST /addItem Route", () => {
 
             expect(res.status).toBe(400);
             expect(res.text).toContain("Name and quantity required");
-            
-            db.close();
         });
-, db } = makeTestApp();
+
+        test("POST /addItem returns 400 when name is empty string", async () => {
+            const { app } = makeTestApp();
 
             const res = await request(app).post("/addItem").send({
                 name: "",
@@ -152,10 +148,10 @@ describe("Add Item Form & POST /addItem Route", () => {
 
             expect(res.status).toBe(400);
             expect(res.text).toContain("Name and quantity required");
-            
-            db.close(
-            expect(res.status).toBe(400);
-            expect(res., db } = makeTestApp();
+        });
+
+        test("POST /addItem returns 400 when quantity is empty string", async () => {
+            const { app } = makeTestApp();
 
             const res = await request(app).post("/addItem").send({
                 name: "Wireless Mouse",
@@ -164,10 +160,10 @@ describe("Add Item Form & POST /addItem Route", () => {
 
             expect(res.status).toBe(400);
             expect(res.text).toContain("Name and quantity required");
-            
-            db.close(
-            });
-, db } = makeTestApp();
+        });
+
+        test("POST /addItem returns 400 when quantity is null", async () => {
+            const { app } = makeTestApp();
 
             const res = await request(app).post("/addItem").send({
                 name: "Wireless Mouse",
@@ -176,19 +172,9 @@ describe("Add Item Form & POST /addItem Route", () => {
 
             expect(res.status).toBe(400);
             expect(res.text).toContain("Name and quantity required");
-            
-            db.close(
-                name: "Wireless Mouse",
-                quantity: null,
-            });
-, db } = makeTestApp();
+        });
 
-            const res = await request(app).post("/addItem").send({});
-
-            expect(res.status).toBe(400);
-            expect(res.text).toContain("Name and quantity required");
-            
-            db.close(ync () => {
+        test("POST /addItem returns 400 for empty request body", async () => {
             const { app } = makeTestApp();
 
             const res = await request(app).post("/addItem").send({});
@@ -200,7 +186,7 @@ describe("Add Item Form & POST /addItem Route", () => {
 
     describe("❌ Server Error Handling", () => {
         test("POST /addItem handles malformed JSON gracefully without crashing", async () => {
-            const { app, db } = makeTestApp();
+            const { app } = makeTestApp();
 
             const res = await request(app)
                 .post("/addItem")
@@ -208,12 +194,10 @@ describe("Add Item Form & POST /addItem Route", () => {
                 .send("{ invalid json");
 
             expect(res.status).toBe(400);
-            
-            db.close();
         });
 
         test("POST /addItem handles undefined request body without crashing", async () => {
-            const { app, db } = makeTestApp();
+            const { app } = makeTestApp();
 
             const res = await request(app)
                 .post("/addItem")
@@ -221,8 +205,6 @@ describe("Add Item Form & POST /addItem Route", () => {
                 .send();
 
             expect(res.status).toBe(400);
-            
-            db.close();
         });
 
         test("POST /addItem returns server error on database failure", async () => {
@@ -247,7 +229,9 @@ describe("Add Item Form & POST /addItem Route", () => {
         });
     });
 
-    describe("🔧 Form F, db } = makeTestApp();
+    describe("🔧 Form Field Handling", () => {
+        test("POST /addItem accepts item with special characters in name", async () => {
+            const { app } = makeTestApp();
 
             const res = await request(app).post("/addItem").send({
                 name: "Wireless Mouse (Pro) @2024",
@@ -256,10 +240,10 @@ describe("Add Item Form & POST /addItem Route", () => {
 
             expect(res.status).toBe(200);
             expect(res.text).toContain("Item added successfully");
-            
-            db.close(
-            expect(res.status).toBe(200);
-            expect(res., db } = makeTestApp();
+        });
+
+        test("POST /addItem accepts item with very long name", async () => {
+            const { app } = makeTestApp();
 
             const longName = "A".repeat(500);
             const res = await request(app).post("/addItem").send({
@@ -269,12 +253,10 @@ describe("Add Item Form & POST /addItem Route", () => {
 
             expect(res.status).toBe(200);
             expect(res.text).toContain("Item added successfully");
-            
-            db.close(
-            });
+        });
 
-            expect(res.status).toBe(200);
-            expect(res., db } = makeTestApp();
+        test("POST /addItem coerces non-numeric price to 0", async () => {
+            const { app } = makeTestApp();
 
             const res = await request(app).post("/addItem").send({
                 name: "Test Item",
@@ -284,10 +266,10 @@ describe("Add Item Form & POST /addItem Route", () => {
 
             expect(res.status).toBe(200);
             expect(res.text).toContain("Item added successfully");
-            
-            db.close(
-            });
-, db } = makeTestApp();
+        });
+
+        test("POST /addItem handles null description by converting to empty string", async () => {
+            const { app } = makeTestApp();
 
             const res = await request(app).post("/addItem").send({
                 name: "Test Item",
@@ -297,10 +279,10 @@ describe("Add Item Form & POST /addItem Route", () => {
 
             expect(res.status).toBe(200);
             expect(res.text).toContain("Item added successfully");
-            
-            db.close(
-                quantity: 5,
-                descrip, db } = makeTestApp();
+        });
+
+        test("POST /addItem handles missing description field", async () => {
+            const { app } = makeTestApp();
 
             const res = await request(app).post("/addItem").send({
                 name: "Test Item",
@@ -309,10 +291,10 @@ describe("Add Item Form & POST /addItem Route", () => {
 
             expect(res.status).toBe(200);
             expect(res.text).toContain("Item added successfully");
-            
-            db.close(
+        });
 
-            const res =, db } = makeTestApp();
+        test("POST /addItem handles missing price field", async () => {
+            const { app } = makeTestApp();
 
             const res = await request(app).post("/addItem").send({
                 name: "Free Item",
@@ -321,12 +303,10 @@ describe("Add Item Form & POST /addItem Route", () => {
 
             expect(res.status).toBe(200);
             expect(res.text).toContain("Item added successfully");
-            
-            db.close(
-        test("POST /addItem handles missing price field", async () => {
-            const { app } = makeTestApp();
+        });
 
-            const res =, db } = makeTestApp();
+        test("POST /addItem converts decimal quantity to number", async () => {
+            const { app } = makeTestApp();
 
             const res = await request(app).post("/addItem").send({
                 name: "Test Item",
@@ -335,12 +315,12 @@ describe("Add Item Form & POST /addItem Route", () => {
 
             expect(res.status).toBe(200);
             expect(res.text).toContain("Item added successfully");
-            
-            db.close(
-        test("POST /addItem converts decimal quantity to number", async () => {
-            const { app } = makeTestApp();
+        });
+    });
 
-            const res =, db } = makeTestApp();
+    describe("📝 Form Integration (add-item.html)", () => {
+        test("Form displays success message when item is added successfully", async () => {
+            const { app } = makeTestApp();
 
             const res = await request(app).post("/addItem").send({
                 name: "Wireless Mouse",
@@ -348,22 +328,6 @@ describe("Add Item Form & POST /addItem Route", () => {
                 price: 29.99,
                 quantity: 10,
             });
-
-            expect(res.status).toBe(200);
-            expect(res.text).toContain("Item added successfully");
-            
-            db.close(
-        test("Form displays success message when item is added successfully", async () => {
-            const { app, db } = makeTestApp();
-
-            const res = await request(app).post("/addItem").send({
-                price: 29.99,
-            });
-
-            expect(res.status).toBe(400);
-            expect(res.text).toContain("Name and quantity required");
-            
-            db.close(
 
             expect(res.status).toBe(200);
             expect(res.text).toContain("Item added successfully");
@@ -379,7 +343,23 @@ describe("Add Item Form & POST /addItem Route", () => {
             expect(res.status).toBe(400);
             expect(res.text).toContain("Name and quantity required");
         });
-, db } = makeTestApp();
+
+        test("Form handles server error responses without crashing", async () => {
+            const { app, db } = makeTestApp();
+
+            db.close();
+
+            const res = await request(app).post("/addItem").send({
+                name: "Test Item",
+                quantity: 5,
+            });
+
+            expect(res.status).toBe(500);
+            expect(res.text).toContain("Server Error");
+        });
+
+        test("Form accepts and processes all form fields correctly", async () => {
+            const { app } = makeTestApp();
 
             const res = await request(app).post("/addItem").send({
                 name: "Complete Item",
@@ -390,29 +370,9 @@ describe("Add Item Form & POST /addItem Route", () => {
 
             expect(res.status).toBe(200);
             expect(res.text).toContain("Item added successfully");
-            
-            db.close(
-            expect(res.status).toBe(500);
-            expect(res.text).toContain("Server Error");
         });
-, db } = makeTestApp();
 
-            // First submission
-            const res1 = await request(app).post("/addItem").send({
-                name: "First Item",
-                quantity: 5,
-            });
-
-            // Second submission should work independently
-            const res2 = await request(app).post("/addItem").send({
-                name: "Second Item",
-                quantity: 10,
-            });
-
-            expect(res1.status).toBe(200);
-            expect(res2.status).toBe(200);
-            
-            db.close(ul submission", async () => {
+        test("Form resets after successful submission", async () => {
             const { app } = makeTestApp();
 
             // First submission
