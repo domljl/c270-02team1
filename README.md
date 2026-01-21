@@ -10,7 +10,7 @@
 
 2. Deploy the stack
 
-   docker stack deploy -c infra/docker-compose.yml demo-stack_web
+   docker stack deploy -c infra/docker-compose.yml demo-stack
 
 3. Verify replicas
 
@@ -42,21 +42,18 @@
 
 ### Test Case 1: Service scales to N replicas
 
-Command:
-  docker service scale demo-stack_web=5
+Script:
+  tests/scale.sh
 
 Expected result:
-  docker service ps demo-stack_web - Shows 5 running replicas
+  PASS: Service scaled to 4 replicas
 
 Copy code
 
 ### Test Case 2: Requests succeed during replica restart
 
-Command:
-  while true; do curl -s localhost:8080 || echo FAIL; sleep 1; done
-
-Action:
-  docker kill <container_id>
+Script:
+  tests/recovery.sh
 
 Expected result:
-  No failed requests while Swarm replaces the task
+  PASS: Requests succeeded during replica restart
