@@ -4,11 +4,23 @@ const request = require("supertest");
 const { openDb } = require("../src/db");
 const { createApp } = require("../src/app");
 
+const openDbs = [];
+
 function makeTestApp() {
     const db = openDb({ filename: ":memory:" });
+    openDbs.push(db);
     const app = createApp({ db });
     return { app, db };
 }
+
+afterEach(() => {
+    while (openDbs.length) {
+        const db = openDbs.pop();
+        try {
+            db.close();
+        } catch {}
+    }
+});
 
 describe("Add Item Form & POST /addItem Route", () => {
     describe("✅ Success Cases - Items Added Successfully", () => {

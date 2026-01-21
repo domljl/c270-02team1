@@ -1,12 +1,26 @@
+// Done by Dominic (24021835)
+
 const request = require("supertest");
 const { openDb } = require("../src/db");
 const { createApp } = require("../src/app");
 
+const openDbs = [];
+
 function makeTestApp() {
     const db = openDb({ filename: ":memory:" });
+    openDbs.push(db);
     const app = createApp({ db });
     return { app, db };
 }
+
+afterEach(() => {
+    while (openDbs.length) {
+        const db = openDbs.pop();
+        try {
+            db.close();
+        } catch {}
+    }
+});
 
 let seedCounter = 0;
 
