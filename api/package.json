@@ -18,7 +18,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "better-sqlite3": "^12.6.0",
+    "better-sqlite3": "^12.6.2",
     "express": "^5.2.1"
   },
   "devDependencies": {
