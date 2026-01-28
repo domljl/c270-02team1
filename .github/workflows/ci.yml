@@ -37,9 +37,11 @@ jobs:
 
       - name: Build Docker image (for smoke)
         run: docker build -t inventory-api:test .
+        working-directory: api
 
       - name: Test Docker image
         run: |
+          docker rm -f test-container 2>/dev/null || true
           docker run -d --name test-container -p 3000:3000 -e DB_FILE=/tmp/test.db inventory-api:test
           sleep 5
           curl -f http://localhost:3000/health || exit 1
