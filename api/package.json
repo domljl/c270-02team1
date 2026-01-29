@@ -11,14 +11,15 @@
     "test:coverage": "jest --runInBand --coverage",
     "test:verbose": "jest --runInBand --verbose",
     "docker:build": "docker build -t inventory-api:test .",
-    "docker:smoke": "docker run --rm -d --name inventory-api-smoke -p 3000:3000 -e DB_FILE=/data/inventory.sqlite inventory-api:test && sleep 3 && curl -f http://localhost:3000/health && docker stop inventory-api-smoke"
+    "docker:smoke": "docker run --rm -d --name inventory-api-smoke -p 3000:3000 -e DATABASE_URL=${DATABASE_URL} -e PGSSL=${PGSSL:-false} inventory-api:test && sleep 3 && curl -f http://localhost:3000/health && docker stop inventory-api-smoke"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "better-sqlite3": "^12.6.2",
+    "pg": "^8.11.5",
+    "dotenv": "^17.2.3",
     "express": "^5.2.1"
   },
   "devDependencies": {
