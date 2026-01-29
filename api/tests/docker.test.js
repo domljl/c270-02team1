@@ -1,19 +1,21 @@
 // Done by Wen Yi (24009255)
 
+require("dotenv").config();
 const { execSync } = require('child_process');
 const http = require('http');
 
-describe('Docker Container Validation', () => {
+const hasDb = Boolean(process.env.DATABASE_URL);
+const maybe = hasDb ? describe : describe.skip;
+
+maybe('Docker Container Validation', () => {
   beforeAll(() => {
-    // Build the Docker image
     console.log('Building Docker image...');
     execSync('docker build -t inventory-api:test .', { stdio: 'inherit' });
-  });
 
-  beforeAll(() => {
-    // Run the container
     console.log('Starting Docker container...');
-    execSync('docker run -d --name inventory-api-test -p 3000:3000 -e DB_FILE=/data/inventory.sqlite inventory-api:test', { stdio: 'inherit' });
+    const dbUrl = process.env.DATABASE_URL;
+    const pgssl = process.env.PGSSL || 'false';
+    execSync(`docker run -d --name inventory-api-test -p 3000:3000 -e DATABASE_URL="${dbUrl}" -e PGSSL=${pgssl} inventory-api:test`, { stdio: 'inherit' });
   });
 
   afterAll(() => {

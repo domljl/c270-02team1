@@ -1,14 +1,41 @@
 const request = require("supertest");
-const { openDb } = require("../src/db");
+const { pool, initDb } = require("../src/db");
 const { createApp } = require("../src/app");
 
-function makeTestApp() {
-    const db = openDb({ filename: ":memory:" });
-    const app = createApp({ db });
-    return { app, db };
+const hasDb = Boolean(process.env.DATABASE_URL);
+const maybeDescribe = hasDb ? describe : describe.skip;
+
+let logSpy;
+let errorSpy;
+
+beforeAll(() => {
+    logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+    errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+});
+
+afterAll(() => {
+    logSpy?.mockRestore();
+    errorSpy?.mockRestore();
+});
+
+async function resetTable() {
+    await pool.query("DELETE FROM items");
+    await pool.query("ALTER SEQUENCE items_id_seq RESTART WITH 1");
 }
 
-describe("Edit Item Feature", () => {
+function makeTestApp() {
+    const app = createApp({ pool });
+    return { app, db: pool };
+}
+
+maybeDescribe("Edit Item Feature", () => {
+    beforeAll(async () => {
+        await initDb();
+    });
+
+    beforeEach(async () => {
+        await resetTable();
+    });
     // -------------------
     // POST /editItem/:id
     // -------------------
@@ -18,9 +45,11 @@ describe("Edit Item Feature", () => {
 
             // Add item first
             await request(app).post("/addItem").send({ name: "Mouse", quantity: 5 });
+            const { rows } = await pool.query("SELECT id FROM items LIMIT 1");
+            const id = rows[0].id;
 
             // Edit item
-            const res = await request(app).post("/editItem/1").send({
+            const res = await request(app).post(`/editItem/${id}`).send({
                 name: "Gaming Mouse",
                 price: 49.99,
                 quantity: 10,
@@ -49,8 +78,10 @@ describe("Edit Item Feature", () => {
             const { app } = makeTestApp();
 
             await request(app).post("/addItem").send({ name: "Keyboard", quantity: 5 });
+            const { rows } = await pool.query("SELECT id FROM items LIMIT 1");
+            const id = rows[0].id;
 
-            const res = await request(app).post("/editItem/1").send({ quantity: -5 });
+            const res = await request(app).post(`/editItem/${id}`).send({ quantity: -5 });
 
             expect(res.status).toBe(400);
             expect(res.body.error).toContain("quantity must be a non-negative integer");
@@ -69,8 +100,10 @@ describe("Edit Item Feature", () => {
                 quantity: 2,
                 price: 199.99,
             });
+            const { rows } = await pool.query("SELECT id FROM items LIMIT 1");
+            const id = rows[0].id;
 
-            const res = await request(app).get("/items/1");
+            const res = await request(app).get(`/items/${id}`);
 
             expect(res.status).toBe(200);
             expect(res.body.name).toBe("Monitor");

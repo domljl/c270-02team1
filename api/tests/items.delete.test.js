@@ -1,30 +1,24 @@
 // Done by Dominic (24021835)
 
 const request = require("supertest");
-const { openDb } = require("../src/db");
+const { pool } = require("../src/db");
 const { createApp } = require("../src/app");
 
-const openDbs = [];
+const hasDb = Boolean(process.env.DATABASE_URL);
+const maybeDescribe = hasDb ? describe : describe.skip;
 
-function makeTestApp() {
-    const db = openDb({ filename: ":memory:" });
-    openDbs.push(db);
-    const app = createApp({ db });
-    return { app, db };
+async function resetTable() {
+    await pool.query("DELETE FROM items");
 }
 
-afterEach(() => {
-    while (openDbs.length) {
-        const db = openDbs.pop();
-        try {
-            db.close();
-        } catch {}
-    }
-});
+function makeTestApp() {
+    const app = createApp({ pool });
+    return { app, db: pool };
+}
 
 let seedCounter = 0;
 
-function seedItem(db, itemData = {}) {
+async function seedItem(db, itemData = {}) {
     const {
         name = "Test Item",
         sku = `SKU-${Date.now()}-${seedCounter++}`,
@@ -33,18 +27,38 @@ function seedItem(db, itemData = {}) {
         quantity = 5,
     } = itemData;
 
-    const result = db
-        .prepare("INSERT INTO items (name, sku, description, price, quantity) VALUES (?, ?, ?, ?, ?)")
-        .run(name, sku, description, price, quantity);
+    const { rows } = await db.query(
+        "INSERT INTO items (name, sku, description, price, quantity) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+        [name, sku, description, price, quantity]
+    );
 
-    return result.lastInsertRowid;
+    return rows[0].id;
 }
 
-describe("DELETE /items/:id - Delete Item Route", () => {
+let logSpy;
+let errorSpy;
+
+beforeAll(() => {
+    logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+    errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+});
+
+afterAll(() => {
+    logSpy?.mockRestore();
+    errorSpy?.mockRestore();
+});
+
+afterEach(async () => {
+    if (hasDb) {
+        await resetTable();
+    }
+});
+
+maybeDescribe("DELETE /items/:id - Delete Item Route", () => {
     describe("✅ Success Cases - Items Deleted Successfully", () => {
         test("DELETE /items/:id deletes existing item and returns success", async () => {
             const { app, db } = makeTestApp();
-            const itemId = seedItem(db, { name: "Mouse", sku: "MOUSE-001", quantity: 10 });
+            const itemId = await seedItem(db, { name: "Mouse", sku: "MOUSE-001", quantity: 10 });
 
             const res = await request(app).delete(`/items/${itemId}`);
 
@@ -52,13 +66,13 @@ describe("DELETE /items/:id - Delete Item Route", () => {
             expect(res.body).toEqual({ success: true });
 
             // Verify item is actually removed from database
-            const item = db.prepare("SELECT * FROM items WHERE id = ?").get(itemId);
-            expect(item).toBeUndefined();
+            const { rows } = await db.query("SELECT * FROM items WHERE id = $1", [itemId]);
+            expect(rows[0]).toBeUndefined();
         });
 
         test("DELETE /items/:id successfully removes item with all fields populated", async () => {
             const { app, db } = makeTestApp();
-            const itemId = seedItem(db, {
+            const itemId = await seedItem(db, {
                 name: "Wireless Keyboard",
                 sku: "KEYBOARD-002",
                 description: "Mechanical keyboard with RGB",
@@ -71,13 +85,13 @@ describe("DELETE /items/:id - Delete Item Route", () => {
             expect(res.status).toBe(200);
             expect(res.body.success).toBe(true);
 
-            const item = db.prepare("SELECT * FROM items WHERE id = ?").get(itemId);
-            expect(item).toBeUndefined();
+            const { rows } = await db.query("SELECT * FROM items WHERE id = $1", [itemId]);
+            expect(rows[0]).toBeUndefined();
         });
 
         test("DELETE /items/:id removes item with zero quantity", async () => {
             const { app, db } = makeTestApp();
-            const itemId = seedItem(db, { name: "Out of Stock", quantity: 0 });
+            const itemId = await seedItem(db, { name: "Out of Stock", quantity: 0 });
 
             const res = await request(app).delete(`/items/${itemId}`);
 
@@ -89,9 +103,10 @@ describe("DELETE /items/:id - Delete Item Route", () => {
             const { app, db } = makeTestApp();
             // Seed multiple items to get a higher ID
             for (let i = 0; i < 100; i++) {
-                seedItem(db, { name: `Item ${i}`, sku: `SKU-${i}` });
+                // eslint-disable-next-line no-await-in-loop
+                await seedItem(db, { name: `Item ${i}`, sku: `SKU-${i}` });
             }
-            const lastItemId = seedItem(db, { name: "Last Item", sku: "LAST-ITEM" });
+            const lastItemId = await seedItem(db, { name: "Last Item", sku: "LAST-ITEM" });
 
             const res = await request(app).delete(`/items/${lastItemId}`);
 
@@ -113,8 +128,8 @@ describe("DELETE /items/:id - Delete Item Route", () => {
 
         test("DELETE /items/:id returns 404 for ID that never existed", async () => {
             const { app, db } = makeTestApp();
-            seedItem(db, { name: "Item 1" });
-            seedItem(db, { name: "Item 2" });
+            await seedItem(db, { name: "Item 1" });
+            await seedItem(db, { name: "Item 2" });
 
             const res = await request(app).delete("/items/1000");
 
@@ -200,7 +215,7 @@ describe("DELETE /items/:id - Delete Item Route", () => {
     describe("🔄 Idempotency - Delete Same Item Twice", () => {
         test("DELETE /items/:id returns 404 when deleting same item twice", async () => {
             const { app, db } = makeTestApp();
-            const itemId = seedItem(db, { name: "To Delete", sku: "DELETE-ME" });
+            const itemId = await seedItem(db, { name: "To Delete", sku: "DELETE-ME" });
 
             // First delete - should succeed
             const firstRes = await request(app).delete(`/items/${itemId}`);
@@ -215,7 +230,7 @@ describe("DELETE /items/:id - Delete Item Route", () => {
 
         test("DELETE /items/:id third attempt also returns 404", async () => {
             const { app, db } = makeTestApp();
-            const itemId = seedItem(db, { name: "Multi Delete Test" });
+            const itemId = await seedItem(db, { name: "Multi Delete Test" });
 
             // First delete
             await request(app).delete(`/items/${itemId}`);
@@ -233,18 +248,21 @@ describe("DELETE /items/:id - Delete Item Route", () => {
     describe("🗄️ Database Integrity - Multiple Items", () => {
         test("DELETE /items/:id only deletes specified item, not others", async () => {
             const { app, db } = makeTestApp();
-            const item1Id = seedItem(db, { name: "Keep Item 1", sku: "KEEP-001" });
-            const item2Id = seedItem(db, { name: "Delete This", sku: "DELETE-002" });
-            const item3Id = seedItem(db, { name: "Keep Item 3", sku: "KEEP-003" });
+            const item1Id = await seedItem(db, { name: "Keep Item 1", sku: "KEEP-001" });
+            const item2Id = await seedItem(db, { name: "Delete This", sku: "DELETE-002" });
+            const item3Id = await seedItem(db, { name: "Keep Item 3", sku: "KEEP-003" });
 
             const res = await request(app).delete(`/items/${item2Id}`);
 
             expect(res.status).toBe(200);
 
             // Verify only item2 is deleted
-            const item1 = db.prepare("SELECT * FROM items WHERE id = ?").get(item1Id);
-            const item2 = db.prepare("SELECT * FROM items WHERE id = ?").get(item2Id);
-            const item3 = db.prepare("SELECT * FROM items WHERE id = ?").get(item3Id);
+            const { rows: item1Rows } = await db.query("SELECT * FROM items WHERE id = $1", [item1Id]);
+            const { rows: item2Rows } = await db.query("SELECT * FROM items WHERE id = $1", [item2Id]);
+            const { rows: item3Rows } = await db.query("SELECT * FROM items WHERE id = $1", [item3Id]);
+            const item1 = item1Rows[0];
+            const item2 = item2Rows[0];
+            const item3 = item3Rows[0];
 
             expect(item1).toBeDefined();
             expect(item1.name).toBe("Keep Item 1");
@@ -255,38 +273,41 @@ describe("DELETE /items/:id - Delete Item Route", () => {
 
         test("DELETE /items/:id maintains correct item count", async () => {
             const { app, db } = makeTestApp();
-            seedItem(db, { name: "Item 1" });
-            const deleteId = seedItem(db, { name: "Item 2" });
-            seedItem(db, { name: "Item 3" });
+            await seedItem(db, { name: "Item 1" });
+            const deleteId = await seedItem(db, { name: "Item 2" });
+            await seedItem(db, { name: "Item 3" });
 
-            const beforeCount = db.prepare("SELECT COUNT(*) as count FROM items").get();
-            expect(beforeCount.count).toBe(3);
+            const { rows: beforeCountRows } = await db.query("SELECT COUNT(*) as count FROM items");
+            const beforeCount = beforeCountRows[0];
+            expect(Number(beforeCount.count)).toBe(3);
 
             await request(app).delete(`/items/${deleteId}`);
 
-            const afterCount = db.prepare("SELECT COUNT(*) as count FROM items").get();
-            expect(afterCount.count).toBe(2);
+            const { rows: afterCountRows } = await db.query("SELECT COUNT(*) as count FROM items");
+            const afterCount = afterCountRows[0];
+            expect(Number(afterCount.count)).toBe(2);
         });
 
         test("DELETE /items/:id can delete all items sequentially", async () => {
             const { app, db } = makeTestApp();
-            const id1 = seedItem(db, { name: "Item 1" });
-            const id2 = seedItem(db, { name: "Item 2" });
-            const id3 = seedItem(db, { name: "Item 3" });
+            const id1 = await seedItem(db, { name: "Item 1" });
+            const id2 = await seedItem(db, { name: "Item 2" });
+            const id3 = await seedItem(db, { name: "Item 3" });
 
             await request(app).delete(`/items/${id1}`);
             await request(app).delete(`/items/${id2}`);
             await request(app).delete(`/items/${id3}`);
 
-            const count = db.prepare("SELECT COUNT(*) as count FROM items").get();
-            expect(count.count).toBe(0);
+            const { rows: countRows } = await db.query("SELECT COUNT(*) as count FROM items");
+            const count = countRows[0];
+            expect(Number(count.count)).toBe(0);
         });
     });
 
     describe("🔐 Edge Cases & Boundary Testing", () => {
         test("DELETE /items/:id handles concurrent deletes gracefully", async () => {
             const { app, db } = makeTestApp();
-            const itemId = seedItem(db, { name: "Concurrent Test" });
+            const itemId = await seedItem(db, { name: "Concurrent Test" });
 
             // Simulate concurrent delete requests
             const [res1, res2] = await Promise.all([
@@ -301,7 +322,7 @@ describe("DELETE /items/:id - Delete Item Route", () => {
 
         test("DELETE /items/:id with query parameters still works", async () => {
             const { app, db } = makeTestApp();
-            const itemId = seedItem(db, { name: "Query Param Test" });
+            const itemId = await seedItem(db, { name: "Query Param Test" });
 
             const res = await request(app).delete(`/items/${itemId}?force=true&reason=test`);
 
@@ -311,7 +332,7 @@ describe("DELETE /items/:id - Delete Item Route", () => {
 
         test("DELETE /items/:id verifies complete removal from all fields", async () => {
             const { app, db } = makeTestApp();
-            const itemId = seedItem(db, {
+            const itemId = await seedItem(db, {
                 name: "Complete Test",
                 sku: "COMPLETE-SKU",
                 description: "Full description",
@@ -322,9 +343,12 @@ describe("DELETE /items/:id - Delete Item Route", () => {
             await request(app).delete(`/items/${itemId}`);
 
             // Verify no trace in any field
-            const byId = db.prepare("SELECT * FROM items WHERE id = ?").get(itemId);
-            const bySku = db.prepare("SELECT * FROM items WHERE sku = ?").get("COMPLETE-SKU");
-            const byName = db.prepare("SELECT * FROM items WHERE name = ?").get("Complete Test");
+            const { rows: byIdRows } = await db.query("SELECT * FROM items WHERE id = $1", [itemId]);
+            const { rows: bySkuRows } = await db.query("SELECT * FROM items WHERE sku = $1", ["COMPLETE-SKU"]);
+            const { rows: byNameRows } = await db.query("SELECT * FROM items WHERE name = $1", ["Complete Test"]);
+            const byId = byIdRows[0];
+            const bySku = bySkuRows[0];
+            const byName = byNameRows[0];
 
             expect(byId).toBeUndefined();
             expect(bySku).toBeUndefined();

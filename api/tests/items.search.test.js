@@ -1,47 +1,58 @@
 const request = require("supertest");
 const { createApp } = require("../src/app");
-const { openDb } = require("../src/db");
-const path = require("path");
-const fs = require("fs");
+const { pool } = require("../src/db");
 
-describe("Search Items API", () => {
+const hasDb = Boolean(process.env.DATABASE_URL);
+const maybeDescribe = hasDb ? describe : describe.skip;
+
+let logSpy;
+let errorSpy;
+
+beforeAll(() => {
+    logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+    errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+});
+
+afterAll(() => {
+    logSpy?.mockRestore();
+    errorSpy?.mockRestore();
+});
+
+async function resetAndSeed() {
+    await pool.query("DELETE FROM items");
+    await pool.query(
+        "INSERT INTO items (name, sku, description, price, quantity) VALUES ($1, $2, $3, $4, $5)",
+        ["Laptop Computer", "LAPTOP-001", "High-performance laptop", 999.99, 5]
+    );
+    await pool.query(
+        "INSERT INTO items (name, sku, description, price, quantity) VALUES ($1, $2, $3, $4, $5)",
+        ["Mouse", "MOUSE-001", "Wireless mouse", 29.99, 50]
+    );
+    await pool.query(
+        "INSERT INTO items (name, sku, description, price, quantity) VALUES ($1, $2, $3, $4, $5)",
+        ["Keyboard", "KEYBOARD-001", "Mechanical keyboard with laptop compatibility", 79.99, 30]
+    );
+    await pool.query(
+        "INSERT INTO items (name, sku, description, price, quantity) VALUES ($1, $2, $3, $4, $5)",
+        ["Monitor", "MONITOR-001", "4K USB-C Monitor", 499.99, 10]
+    );
+    await pool.query(
+        "INSERT INTO items (name, sku, description, price, quantity) VALUES ($1, $2, $3, $4, $5)",
+        ["USB-C Cable", "USB-C-001", "Fast charging cable", 19.99, 100]
+    );
+}
+
+maybeDescribe("Search Items API", () => {
     let app;
-    let db;
-    let dbPath;
 
-    beforeEach(() => {
-        // Create a temporary database for testing
-        dbPath = path.join(__dirname, "test_search_db.sqlite");
-        
-        // Clean up if exists
-        if (fs.existsSync(dbPath)) {
-            fs.unlinkSync(dbPath);
-        }
-
-        db = openDb({ filename: dbPath });
-        app = createApp({ db });
-
-        // Seed the database with test data
-        db.prepare("INSERT INTO items (name, sku, description, price, quantity) VALUES (?, ?, ?, ?, ?)")
-            .run("Laptop Computer", "LAPTOP-001", "High-performance laptop", 999.99, 5);
-        
-        db.prepare("INSERT INTO items (name, sku, description, price, quantity) VALUES (?, ?, ?, ?, ?)")
-            .run("Mouse", "MOUSE-001", "Wireless mouse", 29.99, 50);
-        
-        db.prepare("INSERT INTO items (name, sku, description, price, quantity) VALUES (?, ?, ?, ?, ?)")
-            .run("Keyboard", "KEYBOARD-001", "Mechanical keyboard with laptop compatibility", 79.99, 30);
-        
-        db.prepare("INSERT INTO items (name, sku, description, price, quantity) VALUES (?, ?, ?, ?, ?)")
-            .run("Monitor", "MONITOR-001", "4K USB-C Monitor", 499.99, 10);
-        
-        db.prepare("INSERT INTO items (name, sku, description, price, quantity) VALUES (?, ?, ?, ?, ?)")
-            .run("USB-C Cable", "USB-C-001", "Fast charging cable", 19.99, 100);
+    beforeEach(async () => {
+        app = createApp({ pool });
+        await resetAndSeed();
     });
 
-    afterEach(() => {
-        db.close();
-        if (fs.existsSync(dbPath)) {
-            fs.unlinkSync(dbPath);
+    afterEach(async () => {
+        if (hasDb) {
+            await pool.query("DELETE FROM items");
         }
     });
 
