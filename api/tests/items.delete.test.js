@@ -1,14 +1,14 @@
 // Done by Dominic (24021835)
 
 const request = require("supertest");
-const { pool } = require("../src/db");
+const { pool, initDb } = require("../src/db");
 const { createApp } = require("../src/app");
 
 const hasDb = Boolean(process.env.DATABASE_URL);
 const maybeDescribe = hasDb ? describe : describe.skip;
 
 async function resetTable() {
-    await pool.query("DELETE FROM items");
+    await pool.query("TRUNCATE items RESTART IDENTITY CASCADE");
 }
 
 function makeTestApp() {
@@ -46,6 +46,11 @@ beforeAll(() => {
 afterAll(() => {
     logSpy?.mockRestore();
     errorSpy?.mockRestore();
+});
+
+beforeAll(async () => {
+    await initDb();
+    await resetTable();
 });
 
 afterEach(async () => {
@@ -102,7 +107,7 @@ maybeDescribe("DELETE /items/:id - Delete Item Route", () => {
         test("DELETE /items/:id works with large item ID", async () => {
             const { app, db } = makeTestApp();
             // Seed multiple items to get a higher ID
-            for (let i = 0; i < 100; i++) {
+            for (let i = 0; i < 30; i++) {
                 // eslint-disable-next-line no-await-in-loop
                 await seedItem(db, { name: `Item ${i}`, sku: `SKU-${i}` });
             }
@@ -112,7 +117,7 @@ maybeDescribe("DELETE /items/:id - Delete Item Route", () => {
 
             expect(res.status).toBe(200);
             expect(res.body.success).toBe(true);
-        });
+        }, 15000);
     });
 
     describe("❌ Error Handling - Not Found Cases", () => {

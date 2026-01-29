@@ -19,8 +19,7 @@ afterAll(() => {
 });
 
 async function resetTable() {
-    await pool.query("DELETE FROM items");
-    await pool.query("ALTER SEQUENCE items_id_seq RESTART WITH 1");
+    await pool.query("TRUNCATE items RESTART IDENTITY CASCADE");
 }
 
 function makeTestApp() {

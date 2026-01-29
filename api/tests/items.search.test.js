@@ -1,6 +1,6 @@
 const request = require("supertest");
 const { createApp } = require("../src/app");
-const { pool } = require("../src/db");
+const { pool, initDb } = require("../src/db");
 
 const hasDb = Boolean(process.env.DATABASE_URL);
 const maybeDescribe = hasDb ? describe : describe.skip;
@@ -19,7 +19,7 @@ afterAll(() => {
 });
 
 async function resetAndSeed() {
-    await pool.query("DELETE FROM items");
+    await pool.query("TRUNCATE items RESTART IDENTITY CASCADE");
     await pool.query(
         "INSERT INTO items (name, sku, description, price, quantity) VALUES ($1, $2, $3, $4, $5)",
         ["Laptop Computer", "LAPTOP-001", "High-performance laptop", 999.99, 5]
@@ -43,6 +43,10 @@ async function resetAndSeed() {
 }
 
 maybeDescribe("Search Items API", () => {
+    beforeAll(async () => {
+        await initDb();
+    });
+
     let app;
 
     beforeEach(async () => {
