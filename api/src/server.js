@@ -1,19 +1,24 @@
 // Done by Dominic (24021835)
 
-const fs = require("fs");
 const path = require("path");
-const { createDbFromEnv } = require("./db");
+require("dotenv").config({ path: path.resolve(__dirname, "..", ".env") });
 const { createApp } = require("./app");
+const { pool, initDb } = require("./db");
 
 const port = Number(process.env.PORT || 3000);
+if (Number.isNaN(port)) {
+    throw new Error("PORT must be a number");
+}
 
-const dbFile = process.env.DB_FILE || path.join(process.cwd(), "data", "inventory.sqlite");
+async function start() {
+    await initDb();
+    const app = createApp({ pool });
+    app.listen(port, () => {
+        console.log(`API listening on port ${port}`);
+    });
+}
 
-fs.mkdirSync(path.dirname(dbFile), { recursive: true });
-
-const db = createDbFromEnv();
-const app = createApp({ db });
-
-app.listen(port, () => {
-    console.log(`API listening on port ${port}`);
+start().catch((err) => {
+    console.error("Failed to start server", err);
+    process.exit(1);
 });

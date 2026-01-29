@@ -1,4 +1,4 @@
-// Done by Dominic (24021835)
+// Done by Dominic (24021835) //
 
 const statusEl = null;
 const tableBody = document.getElementById("items-body");

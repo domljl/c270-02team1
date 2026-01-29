@@ -1,31 +1,31 @@
 // Done by Dominic (24021835)
 
 const path = require("path");
-const Database = require("better-sqlite3");
+require("dotenv").config({ path: path.resolve(__dirname, "..", ".env") });
+const { Pool } = require("pg");
 
-function openDb({ filename }) {
-    const db = new Database(filename);
-    db.pragma("journal_mode = WAL");
-
-    db.exec(`
-    CREATE TABLE IF NOT EXISTS items (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      sku TEXT NOT NULL UNIQUE,
-      description TEXT,
-      price REAL NOT NULL DEFAULT 0 CHECK (price >= 0),
-      quantity INTEGER NOT NULL CHECK (quantity >= 0),
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
-  `);
-
-    return db;
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+    throw new Error("DATABASE_URL is required");
 }
 
-function createDbFromEnv() {
-    const dbFile = process.env.DB_FILE || path.join(process.cwd(), "data", "inventory.sqlite");
+const pool = new Pool({
+    connectionString,
+    ssl: { rejectUnauthorized: false },
+});
 
-    return openDb({ filename: dbFile });
+async function initDb() {
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS items (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL,
+            sku TEXT NOT NULL UNIQUE,
+            description TEXT,
+            price REAL NOT NULL DEFAULT 0 CHECK (price >= 0),
+            quantity INTEGER NOT NULL CHECK (quantity >= 0),
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+    `);
 }
 
-module.exports = { openDb, createDbFromEnv };
+module.exports = { pool, initDb };

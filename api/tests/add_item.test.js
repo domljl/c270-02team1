@@ -1,28 +1,41 @@
 // Done by Margaret (24020804)
 
 const request = require("supertest");
-const { openDb } = require("../src/db");
+const { pool } = require("../src/db");
 const { createApp } = require("../src/app");
 
-const openDbs = [];
+const hasDb = Boolean(process.env.DATABASE_URL);
+const maybeDescribe = hasDb ? describe : describe.skip;
 
-function makeTestApp() {
-    const db = openDb({ filename: ":memory:" });
-    openDbs.push(db);
-    const app = createApp({ db });
-    return { app, db };
+async function resetTable() {
+    await pool.query("DELETE FROM items");
 }
 
-afterEach(() => {
-    while (openDbs.length) {
-        const db = openDbs.pop();
-        try {
-            db.close();
-        } catch {}
+function makeTestApp() {
+    const app = createApp({ pool });
+    return { app, db: pool };
+}
+
+let logSpy;
+let errorSpy;
+
+beforeAll(() => {
+    logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+    errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+});
+
+afterAll(() => {
+    logSpy?.mockRestore();
+    errorSpy?.mockRestore();
+});
+
+afterEach(async () => {
+    if (hasDb) {
+        await resetTable();
     }
 });
 
-describe("Add Item Form & POST /addItem Route", () => {
+maybeDescribe("Add Item Form & POST /addItem Route", () => {
     describe("✅ Success Cases - Items Added Successfully", () => {
         test("POST /addItem creates item with all valid fields", async () => {
             const { app } = makeTestApp();
@@ -211,15 +224,7 @@ describe("Add Item Form & POST /addItem Route", () => {
 
         test("POST /addItem returns server error on database failure", async () => {
             const { app, db } = makeTestApp();
-
-            // Add one item successfully first
-            await request(app).post("/addItem").send({
-                name: "First Item",
-                quantity: 10,
-            });
-
-            // Close database to trigger error
-            db.close();
+            const spy = jest.spyOn(db, "query").mockRejectedValueOnce(new Error("boom"));
 
             const res = await request(app).post("/addItem").send({
                 name: "Second Item",
@@ -228,6 +233,7 @@ describe("Add Item Form & POST /addItem Route", () => {
 
             expect(res.status).toBe(500);
             expect(res.text).toContain("Server Error");
+            spy.mockRestore();
         });
     });
 
@@ -348,8 +354,7 @@ describe("Add Item Form & POST /addItem Route", () => {
 
         test("Form handles server error responses without crashing", async () => {
             const { app, db } = makeTestApp();
-
-            db.close();
+            const spy = jest.spyOn(db, "query").mockRejectedValueOnce(new Error("boom"));
 
             const res = await request(app).post("/addItem").send({
                 name: "Test Item",
@@ -358,6 +363,7 @@ describe("Add Item Form & POST /addItem Route", () => {
 
             expect(res.status).toBe(500);
             expect(res.text).toContain("Server Error");
+            spy.mockRestore();
         });
 
         test("Form accepts and processes all form fields correctly", async () => {

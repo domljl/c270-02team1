@@ -10,6 +10,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
     defaults:
       run:
         working-directory: api
@@ -37,10 +39,12 @@ jobs:
 
       - name: Build Docker image (for smoke)
         run: docker build -t inventory-api:test .
+        working-directory: api
 
       - name: Test Docker image
         run: |
-          docker run -d --name test-container -p 3000:3000 -e DB_FILE=/tmp/test.db inventory-api:test
+          docker rm -f test-container 2>/dev/null || true
+          docker run -d --name test-container -p 3000:3000 -e DATABASE_URL=${{ secrets.DATABASE_URL }} inventory-api:test
           sleep 5
           curl -f http://localhost:3000/health || exit 1
           docker stop test-container
@@ -105,7 +109,7 @@ jobs:
 
       - name: Test Docker image
         run: |
-          docker run -d --name test-container -p 3000:3000 -e DB_FILE=/tmp/test.db inventory-api:test
+          docker run -d --name test-container -p 3000:3000 -e DATABASE_URL=${{ secrets.DATABASE_URL }} inventory-api:test
           sleep 5
           curl -f http://localhost:3000/health || exit 1
           docker stop test-container
