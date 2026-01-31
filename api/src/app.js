@@ -120,6 +120,7 @@ function createApp({ pool }) {
         }
     });
     //Done by Margaret (24020804)
+    // Node.JS POST addItem route to add a new item to the inventory//
     app.post("/addItem", async (req, res) => {
         const { name, description, price, quantity } = req.body || {};
 
