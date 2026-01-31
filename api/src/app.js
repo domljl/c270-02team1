@@ -119,7 +119,7 @@ function createApp({ pool }) {
             return res.status(500).json({ error: "Server Error" });
         }
     });
- //Done by Margaret (24020804)
+    //Done by Margaret (24020804)
     app.post("/addItem", async (req, res) => {
         const { name, description, price, quantity } = req.body || {};
 
