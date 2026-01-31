@@ -1,0 +1,29 @@
+
+version: "3.9"
+
+services:
+  web:
+    image: nginx:alpine
+    volumes:
+      - ./html:/usr/share/nginx/html:ro
+    ports:
+      - target: 80
+        published: 8080
+        mode: ingress
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+      update_config:
+        parallelism: 1
+        delay: 10s
+    networks:
+      - webnet
+
+networks:
+  webnet:
+    driver: overlay
