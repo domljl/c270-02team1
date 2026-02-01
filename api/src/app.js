@@ -1,3 +1,5 @@
+// Contributed by: Dominic (24021835), Vicknesh (24010102), Eisa (24011357), Margaret (24020804)
+
 const express = require("express");
 const path = require("path");
 
@@ -14,29 +16,57 @@ function createApp({ pool }) {
     });
 
     // Lists all items, optionally filtered by a case-insensitive search on name/sku/description.
+    // Done by Vicknesh (24010102)
     app.get("/items", async (req, res) => {
         try {
+            // Extract search query from request parameters
+            // Priority: req.query.query > req.query.q > empty string
+            // Trim whitespace and convert to lowercase for case-insensitive search
             const q = (req.query.query || req.query.q || "").trim().toLowerCase();
             let rows;
+            
+            // Branch logic based on whether a search query was provided
             if (q) {
+                // Query was provided: perform filtered search
+                
+                // Create SQL LIKE pattern with wildcards to match partial strings
+                // E.g., "laptop" becomes "%laptop%"
                 const like = `%${q}%`;
+                
+                // Execute parameterized SQL query to search across multiple fields
+                // Uses lower() function to ensure case-insensitive matching in the database
+                // Searches: name field, SKU field, description field
+                // Results are ordered by id DESC (newest items first)
+                // Parameterized query ($1, $2, $3) prevents SQL injection attacks
                 const { rows: data } = await pool.query(
                     `SELECT id, name, sku, description, price, quantity
                      FROM items
                      WHERE lower(name) LIKE $1 OR lower(sku) LIKE $2 OR lower(description) LIKE $3
                      ORDER BY id DESC`,
-                    [like, like, like]
+                    [like, like, like] // Same search pattern used for all three fields
                 );
                 rows = data;
             } else {
+                // No query provided: return all items
+                
+                // Execute simple query to fetch all items from database
+                // Results are ordered by id DESC (newest items first)
                 const { rows: data } = await pool.query(
                     "SELECT id, name, sku, description, price, quantity FROM items ORDER BY id DESC"
                 );
                 rows = data;
             }
+            
+            // Send results back to client as JSON array
             res.json(rows);
         } catch (err) {
+            // Error handling: log error and send server error response
+            
+            // Log the error for debugging and monitoring purposes
             console.error(err);
+            
+            // Send HTTP 500 Internal Server Error with generic error message
+            // Generic message prevents leaking sensitive database information to client
             res.status(500).json({ error: "Server Error" });
         }
     });

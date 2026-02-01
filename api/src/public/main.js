@@ -1,4 +1,4 @@
-// Done by Dominic (24021835) //
+// Contributed by: Dominic (24021835), Vicknesh (24010102), Eisa (24011357)
 
 // DOM hooks used throughout the page.
 const tableBody = document.getElementById("items-body");
@@ -94,6 +94,7 @@ function renderItems(items) {
 }
 
 // Fetches inventory from the API (with optional search query) and renders results.
+// Done by Vicknesh (24010102)
 async function fetchInventory(query = "") {
     try {
         const qs = query ? `?q=${encodeURIComponent(query)}` : "";
@@ -154,6 +155,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Debounced search to avoid spamming the API while typing.
+    // Done by Vicknesh (24010102)
     searchInput?.addEventListener("input", (e) => {
         const value = e.target.value || "";
         if (searchTimer) {
