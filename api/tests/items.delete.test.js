@@ -4,13 +4,16 @@ const request = require("supertest");
 const { pool, initDb } = require("../src/db");
 const { createApp } = require("../src/app");
 
+// Skip the suite entirely if no DATABASE_URL is configured.
 const hasDb = Boolean(process.env.DATABASE_URL);
 const maybeDescribe = hasDb ? describe : describe.skip;
 
+// Wipes the items table and resets the sequence so every test starts fresh.
 async function resetTable() {
     await pool.query("TRUNCATE items RESTART IDENTITY CASCADE");
 }
 
+// Creates an express app instance backed by the shared pg pool for testing.
 function makeTestApp() {
     const app = createApp({ pool });
     return { app, db: pool };
@@ -18,6 +21,7 @@ function makeTestApp() {
 
 let seedCounter = 0;
 
+// Inserts a single item with defaults and returns its generated id.
 async function seedItem(db, itemData = {}) {
     const {
         name = "Test Item",
@@ -35,24 +39,29 @@ async function seedItem(db, itemData = {}) {
     return rows[0].id;
 }
 
+// Spies used to silence console noise during tests.
 let logSpy;
 let errorSpy;
 
+// Mute console output across the suite.
 beforeAll(() => {
     logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
     errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
 });
 
+// Restore console after all tests.
 afterAll(() => {
     logSpy?.mockRestore();
     errorSpy?.mockRestore();
 });
 
+// Ensure schema exists and start with a clean table.
 beforeAll(async () => {
     await initDb();
     await resetTable();
 });
 
+// Clean table after each test when DB is available.
 afterEach(async () => {
     if (hasDb) {
         await resetTable();
@@ -60,6 +69,7 @@ afterEach(async () => {
 });
 
 maybeDescribe("DELETE /items/:id - Delete Item Route", () => {
+    // Happy-path deletes.
     describe("✅ Success Cases - Items Deleted Successfully", () => {
         test("DELETE /items/:id deletes existing item and returns success", async () => {
             const { app, db } = makeTestApp();
@@ -120,6 +130,7 @@ maybeDescribe("DELETE /items/:id - Delete Item Route", () => {
         }, 15000);
     });
 
+    // 404 responses when item is missing.
     describe("❌ Error Handling - Not Found Cases", () => {
         test("DELETE /items/:id returns 404 when deleting non-existent item", async () => {
             const { app } = makeTestApp();
@@ -152,6 +163,7 @@ maybeDescribe("DELETE /items/:id - Delete Item Route", () => {
         });
     });
 
+    // 400 responses for invalid id shapes/values.
     describe("❌ Error Handling - Invalid ID Validation", () => {
         test("DELETE /items/:id returns 400 for non-numeric ID", async () => {
             const { app } = makeTestApp();
@@ -217,6 +229,7 @@ maybeDescribe("DELETE /items/:id - Delete Item Route", () => {
         });
     });
 
+    // Ensure repeat deletes return 404 after first success.
     describe("🔄 Idempotency - Delete Same Item Twice", () => {
         test("DELETE /items/:id returns 404 when deleting same item twice", async () => {
             const { app, db } = makeTestApp();
@@ -250,6 +263,7 @@ maybeDescribe("DELETE /items/:id - Delete Item Route", () => {
         });
     });
 
+    // Verify only targeted rows are removed and counts stay consistent.
     describe("🗄️ Database Integrity - Multiple Items", () => {
         test("DELETE /items/:id only deletes specified item, not others", async () => {
             const { app, db } = makeTestApp();
@@ -309,6 +323,7 @@ maybeDescribe("DELETE /items/:id - Delete Item Route", () => {
         });
     });
 
+    // Additional edge conditions and query param handling.
     describe("🔐 Edge Cases & Boundary Testing", () => {
         test("DELETE /items/:id handles concurrent deletes gracefully", async () => {
             const { app, db } = makeTestApp();

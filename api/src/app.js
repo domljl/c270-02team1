@@ -8,10 +8,12 @@ function createApp({ pool }) {
     app.use(express.urlencoded({ extended: true }));
     app.use(express.static(path.join(__dirname, "public")));
 
+    // Lightweight readiness probe for containers/CI. Done by Dominic (24021835)
     app.get("/health", (req, res) => {
         res.json({ status: "ok" });
     });
 
+    // Lists all items, optionally filtered by a case-insensitive search on name/sku/description.
     app.get("/items", async (req, res) => {
         try {
             const q = (req.query.query || req.query.q || "").trim().toLowerCase();
@@ -98,9 +100,12 @@ function createApp({ pool }) {
         }
     });
 
+    // Delete Item route: Done by Dominic (24021835)
+    // Guard rails: missing id segments return a 400 instead of hitting the DB.
     app.delete("/items", (req, res) => res.status(400).json({ error: "invalid id" }));
     app.delete("/items/", (req, res) => res.status(400).json({ error: "invalid id" }));
 
+    // Deletes a single item by numeric id with validation and clear 404/500 responses.
     app.delete("/items/:id", async (req, res) => {
         const id = Number(req.params.id);
 
@@ -119,6 +124,7 @@ function createApp({ pool }) {
             return res.status(500).json({ error: "Server Error" });
         }
     });
+
     // /addItem POST route: Done by Margaret Pabustan (24020804)
     // Node.JS POST addItem route to add a new item to the inventory//
     app.post("/addItem", async (req, res) => {
