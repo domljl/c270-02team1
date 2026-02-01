@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
+<!-- Hero: page title and quick link to add-item page -->
 <header class="hero">
     <div>
         <p class="eyebrow">Inventory Dashboard</p>
@@ -21,12 +22,14 @@
 </header>
 
 <main class="container">
+    <!-- Inventory table card -->
     <section class="panel">
         <div class="panel-header">
             <div>
                 <h2>Inventory</h2>
                 <p class="muted">Data loads from the API when available; otherwise sample data is shown.</p>
             </div>
+            <!-- Search input is wired to API search via main.js -->
             <div class="search-box">
                 <input id="search-input" type="search" placeholder="Search items..." />
             </div>
@@ -44,6 +47,7 @@
                 </tr>
                 </thead>
                 <tbody id="items-body">
+                <!-- Placeholder row shown until data arrives -->
                 <tr>
                     <td colspan="5" class="muted center">Loading…</td>
                 </tr>
@@ -53,6 +57,7 @@
     </section>
 </main>
 
+<!-- Confirmation modal toggled by main.js for delete actions -->
 <div id="confirm-modal" class="modal hidden">
     <div class="modal-content">
         <h3>Confirm delete</h3>
@@ -64,6 +69,7 @@
     </div>
 </div>
 
+<!-- Main script handles data fetch, rendering, search, and delete modal -->
 <script src="/main.js" defer></script>
 </body>
 </html>

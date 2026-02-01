@@ -1,16 +1,20 @@
 // Done by Dominic (24021835) //
 
-const statusEl = null;
+// DOM hooks used throughout the page.
 const tableBody = document.getElementById("items-body");
 const modal = document.getElementById("confirm-modal");
 const confirmDeleteBtn = document.getElementById("confirm-delete");
 const cancelDeleteBtn = document.getElementById("cancel-delete");
 const searchInput = document.getElementById("search-input");
+
+// Tracks which row is pending deletion and the debounce timer for search.
 let pendingDeleteId = null;
 let searchTimer = null;
 
+// No-op placeholder: UI no longer shows inline status; kept to avoid breaking calls.
 function showStatus() { }
 
+// Formats a price as $X.XX or returns an em dash when missing/invalid.
 function formatPrice(value) {
     if (value === undefined || value === null) return "—";
     const num = Number(value);
@@ -18,6 +22,7 @@ function formatPrice(value) {
     return `$${num.toFixed(2)}`;
 }
 
+// Renders the inventory table; shows an empty-state row when no items exist.
 function renderItems(items) {
     tableBody.innerHTML = "";
 
@@ -88,6 +93,7 @@ function renderItems(items) {
     });
 }
 
+// Fetches inventory from the API (with optional search query) and renders results.
 async function fetchInventory(query = "") {
     try {
         const qs = query ? `?q=${encodeURIComponent(query)}` : "";
@@ -111,9 +117,11 @@ async function fetchInventory(query = "") {
     }
 }
 
+// Wire up page interactions once DOM is ready.
 document.addEventListener("DOMContentLoaded", () => {
     fetchInventory();
 
+    // Confirm delete: calls API, shows status, refreshes table.
     confirmDeleteBtn?.addEventListener("click", async () => {
         if (!pendingDeleteId) {
             closeModal();
@@ -139,11 +147,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // Cancel delete: close modal and clear pending state.
     cancelDeleteBtn?.addEventListener("click", () => {
         pendingDeleteId = null;
         closeModal();
     });
 
+    // Debounced search to avoid spamming the API while typing.
     searchInput?.addEventListener("input", (e) => {
         const value = e.target.value || "";
         if (searchTimer) {
@@ -155,10 +165,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
+// Opens the confirmation modal.
 function openModal() {
     if (modal) modal.classList.remove("hidden");
 }
 
+// Closes the confirmation modal.
 function closeModal() {
     if (modal) modal.classList.add("hidden");
 }
