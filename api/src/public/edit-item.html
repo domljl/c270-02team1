@@ -1,3 +1,5 @@
+<!-- Done by Eisa (24011357) -->
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -28,60 +30,82 @@
       <div id="feedbackMsg" class="status hidden"></div>
     </div>
 
+    <!-- Form for editing existing item details -->
     <form id="editForm" class="form-grid form-vertical">
+      <!-- Product name input field -->
       <label>
         Product name
         <input type="text" id="name" name="name" required>
       </label>
 
+      <!-- SKU (Stock Keeping Unit) input field - unique identifier for the product -->
       <label>
         SKU
         <input type="text" id="sku" name="sku" required>
       </label>
 
+      <!-- Product description input field -->
       <label>
         Description
         <input type="text" id="description" name="description" required>
       </label>
 
+      <!-- Price input field (accepts decimal values with 0.01 step) -->
       <label>
         Price
         <input type="number" id="price" name="price" step="0.01" min="0" required>
       </label>
 
+      <!-- Quantity input field (accepts whole numbers only) -->
       <label>
         Quantity
         <input type="number" id="quantity" name="quantity" step="1" min="0" required>
       </label>
 
+      <!-- Form action buttons -->
       <div class="form-actions">
+        <!-- Submit button to save changes to the item -->
         <button type="submit" class="btn primary" id="submitBtn">Save changes</button>
+        <!-- Cancel button to return to inventory without saving -->
         <a class="btn ghost" href="/">Cancel</a>
       </div>
     </form>
   </section>
 </main>
 
+<!-- Client-side script for edit-item functionality -->
 <script>
+// Execute when the page has fully loaded
 document.addEventListener("DOMContentLoaded", async () => {
-  const form = document.getElementById("editForm");
-  const feedback = document.getElementById("feedbackMsg");
-  const submitBtn = document.getElementById("submitBtn");
+  // Get references to important DOM elements
+  const form = document.getElementById("editForm"); // The edit form element
+  const feedback = document.getElementById("feedbackMsg"); // Feedback message display area
+  const submitBtn = document.getElementById("submitBtn"); // Submit button element
 
-  // Assume item ID is passed in query string, e.g. /edit-item.html?id=5
+  // Extract the item ID from the URL query string (e.g., /edit-item.html?id=5)
   const params = new URLSearchParams(window.location.search);
   const itemId = params.get("id");
 
+  /**
+   * Function: setFeedback
+   * Purpose: Display a feedback message to the user with visual styling
+   * Parameters:
+   *   - message: Text to display to the user
+   *   - tone: CSS class for styling (default "success", can be "error" or "muted")
+   * Effects: Updates the feedback message area and makes it visible
+   */
   function setFeedback(message, tone = "success") {
     feedback.textContent = message;
     feedback.className = `status ${tone}`;
     feedback.classList.remove("hidden");
   }
 
-  // Load existing item data
+  // Load the existing item data from the server and populate form fields
   try {
+    // Fetch the item data using the item ID from the URL
     const res = await fetch(`/items/${itemId}`);
     if (res.ok) {
+      // Parse the response and populate form fields with current values
       const item = await res.json();
       form.name.value = item.name;
       form.sku.value = item.sku;
@@ -89,46 +113,57 @@ document.addEventListener("DOMContentLoaded", async () => {
       form.price.value = item.price;
       form.quantity.value = item.quantity;
     } else {
+      // Display error if the item could not be loaded
       setFeedback("Unable to load item", "error");
     }
   } catch (err) {
+    // Log and display error if network request fails
     console.error(err);
     setFeedback("Server error loading item", "error");
   }
 
-  // Handle form submission
+  // Handle form submission to save changes
   form.addEventListener("submit", async (e) => {
+    // Prevent default form submission behavior (page refresh)
     e.preventDefault();
 
+    // Disable submit button to prevent multiple submissions
     submitBtn.disabled = true;
+    // Show loading message to user
     setFeedback("Saving changes…", "muted");
 
+    // Collect and sanitize form input data
     const data = {
-      name: form.name.value.trim(),
-      sku: form.sku.value.trim(),
-      description: form.description.value.trim(),
-      price: Number.parseFloat(form.price.value),
-      quantity: Number.parseInt(form.quantity.value, 10),
+      name: form.name.value.trim(), // Remove extra whitespace from name
+      sku: form.sku.value.trim(), // Remove extra whitespace from SKU
+      description: form.description.value.trim(), // Remove extra whitespace from description
+      price: Number.parseFloat(form.price.value), // Convert price to decimal number
+      quantity: Number.parseInt(form.quantity.value, 10), // Convert quantity to integer
     };
 
     try {
+      // Send the updated data to the server
       const res = await fetch(`/editItem/${itemId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        method: "POST", // Use POST method to update the item
+        headers: { "Content-Type": "application/json" }, // Specify JSON format
+        body: JSON.stringify(data), // Convert data object to JSON string
       });
 
       if (!res.ok) {
+        // Extract error message from server response or use default
         const errorText = (await res.json().catch(() => ({}))).error || "Unable to update item";
         setFeedback(errorText, "error");
-        return;
+        return; // Exit early since update failed
       }
 
+      // Display success message to user
       setFeedback("Item updated successfully!", "success");
     } catch (err) {
+      // Log and display error if network request fails
       console.error("Error updating item:", err);
       setFeedback("Server error. Please try again.", "error");
     } finally {
+      // Re-enable submit button regardless of success or failure
       submitBtn.disabled = false;
     }
   });

@@ -224,32 +224,50 @@ function createApp({ pool }) {
         }
     });
 
+    // Edit Item route: Done by Eisa (24011357)
     app.post("/editItem/:id", async (req, res) => {
+        // Convert URL parameter ":id" from string to number
         const id = Number(req.params.id);
+        // Extract the fields to be updated from the request body
         const { name, sku, description, price, quantity } = req.body || {};
 
+        // Validate ID: must be a valid integer
+        // If ID is not a valid integer, return 400 Bad Request error
         if (!Number.isInteger(id)) {
             return res.status(400).json({ error: "invalid id" });
         }
 
         try {
+            // Fetch the existing item from database using the provided ID
+            // This allows us to keep the current values for fields that are not being updated
             const { rows: existingRows } = await pool.query(
                 "SELECT id, name, sku, description, price, quantity FROM items WHERE id = $1",
                 [id]
             );
+            // Get the first (and only) result from the query
             const item = existingRows[0];
+            
+            // Return 404 Not Found if the item doesn't exist in the database
             if (!item) {
                 return res.status(404).json({ error: "Item not found" });
             }
 
+            // Validate quantity if it was provided in the request body
+            // Quantity must be a non-negative integer (0 or higher)
             if (quantity !== undefined && (!Number.isInteger(Number(quantity)) || Number(quantity) < 0)) {
                 return res.status(400).json({ error: "quantity must be a non-negative integer" });
             }
+            
+            // Validate price if it was provided, otherwise use the existing price from the database
+            // Price must be a valid non-negative number (>= 0)
             const numericPrice = price !== undefined ? Number(price) : item.price;
             if (Number.isNaN(numericPrice) || numericPrice < 0) {
                 return res.status(400).json({ error: "price must be a number >= 0" });
             }
 
+            // Update the item in the database using the nullish coalescing operator (??)
+            // The ?? operator means: "if the left side is null/undefined, use the right side"
+            // So: if a new value is provided (not null), use it; otherwise use the existing value
             const { rows } = await pool.query(
                 `
                 UPDATE items
@@ -258,18 +276,21 @@ function createApp({ pool }) {
                 RETURNING id, name, sku, description, price, quantity
                 `,
                 [
-                    name ?? item.name,
-                    sku ?? item.sku,
-                    description ?? item.description,
-                    numericPrice,
-                    quantity ?? item.quantity,
-                    id,
+                    name ?? item.name,           // Use new name if provided, otherwise keep existing name
+                    sku ?? item.sku,             // Use new SKU if provided, otherwise keep existing SKU
+                    description ?? item.description, // Use new description if provided, otherwise keep existing
+                    numericPrice,                // Use the validated/processed price value
+                    quantity ?? item.quantity,   // Use new quantity if provided, otherwise keep existing quantity
+                    id                           // The ID to identify which item to update
                 ]
             );
 
+            // Return the updated item as JSON response to the client
             res.json(rows[0]);
         } catch (err) {
+            // Log the error to the console for debugging purposes
             console.error(err);
+            // Return HTTP 500 Internal Server Error with generic error message
             res.status(500).json({ error: "Server Error" });
         }
     });

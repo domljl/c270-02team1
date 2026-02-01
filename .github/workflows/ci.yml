@@ -201,3 +201,10 @@ jobs:
       - name: Check for outdated dependencies
         run: npm outdated
         continue-on-error: true
+  
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
