@@ -1,4 +1,5 @@
 // Done by Margaret (24020804)
+// Tests for the Add Item form and POST /addItem route
 
 const request = require("supertest");
 const { pool } = require("../src/db");
