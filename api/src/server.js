@@ -14,7 +14,7 @@ async function start() {
     await initDb();
     const app = createApp({ pool });
     app.listen(port, () => {
-        console.log(`API listening on port ${port}`);
+        console.log(`Server running on http://localhost:${port}`);
     });
 }
 
