@@ -119,32 +119,48 @@ function createApp({ pool }) {
             return res.status(500).json({ error: "Server Error" });
         }
     });
-    //Done by Margaret (24020804)
+    // /addItem POST route: Done by Margaret Pabustan (24020804)
     // Node.JS POST addItem route to add a new item to the inventory//
     app.post("/addItem", async (req, res) => {
+    // Destructure values from the request body (Sent from the Add Item form)//
         const { name, description, price, quantity } = req.body || {};
-
+    
+    // Server-side validation - This ensures that required fields like "name" and "quantity" are provided and valid//
+    //They must not be left empty or null//
         if (!name || quantity === undefined || quantity === "" || quantity === null) {
             return res.status(400).send("Name and quantity required");
         }
-
+    //Convert quantity to number//
         const numericQty = Number(quantity);
+
+    // Ensure quantity is a non-negative integer//
+    // If number is invalid, set safeQty to null so that later validation can reject it.//
         const safeQty = Number.isFinite(numericQty) ? Math.round(numericQty) : null;
+
+    //Convert price to number, default to 0 if price is not provided//
         const numericPrice = price !== undefined ? Number(price) : 0;
+    
+    // Ensure price is a valid non-negative number (>= 0)//
         const safePrice = Number.isFinite(numericPrice) && numericPrice >= 0 ? numericPrice : 0;
         if (safeQty === null || safeQty < 0) {
             return res.status(400).send("Quantity must be a non-negative number");
         }
-
+    //Generate a unique SKU based on the item name and current timestamp//
+    //Store the generated SKU in the variable "sku"//
+    // Date.now() ensures uniqueness even if names are similar//
         const sku = name.replace(/\s+/g, "-").toUpperCase() + "-" + Date.now();
 
         try {
+            //Insert the new item into the database using the SQL query INSERT INTO items...//
+            //description || ensures that description is never null; defaults to empty string if not provided//
             await pool.query(
                 "INSERT INTO items (name, sku, description, price, quantity) VALUES ($1, $2, $3, $4, $5)",
                 [name, sku, description || "", safePrice, safeQty]
             );
+        // If insertion is successful, send a success message to the user//
             return res.status(200).send("Item added successfully");
         } catch (err) {
+        //Log any errors to the console for debugging purposes//
             console.error(err);
             return res.status(500).send("Server Error");
         }

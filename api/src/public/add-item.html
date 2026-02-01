@@ -1,64 +1,81 @@
 <!-- Done by Margaret (24020804) -->
-<!--Add Item Page Form-->
+<!--Add Item Page Form: Allows users to input new inventory items, along with their fields (name, sku, description, price, quantity)-->
  
 <!doctype html>
 <html lang="en">
 <head>
+    <!--Character encoding for proper display of special characters - Makes sure symbols like $ show up correctly on browser -->
     <meta charset="UTF-8">
+
+    <!--Makes page responsive, on mobile phones and desktop devices-->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!--Title displayed in browser tab -->
     <title>Add Item</title>
+    <!--Provides link to an external CSS stylesheet to esnsure consistent styling across the application -->
     <link rel="stylesheet" href="/styles.css">
 </head>
+
 <body>
+<!--Page header and navigation-->
 <header class="hero">
     <div>
         <p class="eyebrow">Inventory Dashboard</p>
         <h1>Add a new item</h1>
         <p class="subtitle">Capture the basics so it is ready for the shelf.</p>
     </div>
+<!--Navigation button to return to the inventory list page -->
     <div class="hero-actions">
         <a class="btn ghost" href="/">Back to inventory</a>
     </div>
 </header>
-
+<!-- Main content area of the page -->
 <main class="container">
+<!-- Panel section to hold the Add Item form and related elements -->
     <section class="panel">
+    <!--Section header and feedback message area-->
         <div class="panel-header">
             <div>
+    <!--Section title to tell the user what information is required -->
                 <h2>Item details</h2>
+    <!--Explains to user that all fields are mandatory and also specifies input requirements for price and quantity-->
                 <p class="muted">All fields are required. Price uses dollars; quantity uses whole numbers.</p>
             </div>
+        <!--Feedback message area for success or error messages-->
             <div id="feedbackMsg" class="status hidden"></div>
         </div>
 
+        <!--Defines the form for adding a new item-->
         <form id="itemForm" class="form-grid form-vertical">
+            <!--Input field for product name-->
             <label>
                 Product name
                 <input type="text" id="name" name="name" placeholder="Wireless Mouse" required>
             </label>
-
+              <!--Input field for SKU-->
             <label>
                 SKU
                 <input type="text" id="sku" name="sku" placeholder="WM-001" required>
             </label>
-
+            <!--Input field for product description-->
             <label>
                 Description
                 <input type="text" id="description" name="description" placeholder="Bluetooth optical mouse" required>
             </label>
-
+            <!--Input field for product price (decimals e.g. 2 significant figures are allowed)-->
             <label>
                 Price
                 <input type="number" id="price" name="price" step="0.01" min="0" placeholder="29.99" required>
             </label>
-
+            <!--Input field for product quantity (Only allows whole numbers)-->
             <label>
                 Quantity
                 <input type="number" id="quantity" name="quantity" step="1" min="0" placeholder="10" required>
             </label>
-
+            <!--Defines submit and cancel buttons for the form -->
+            <!--Submit button which adds item to the inventory list -->
             <div class="form-actions">
                 <button type="submit" class="btn primary" id="submitBtn">Add item</button>
+            <!--Cancel button that redirects back to the inventory list page-->
                 <a class="btn ghost" href="/">Cancel</a>
             </div>
         </form>
@@ -66,50 +83,93 @@
 </main>
 
 <script>
+    /* This script handles the client-side functionality for "Add Item" form, including:
+    1. Capturing user input
+    2. Validating and preparing data
+    3. Sending the data to the backend via Fetch API
+    4. Displaying real-time feedback messages
+    5. Preventing multiple submissions and handling errors gracefully */
+
 document.addEventListener("DOMContentLoaded", () => {
-    const form = document.getElementById("itemForm");
-    const feedback = document.getElementById("feedbackMsg");
-    const submitBtn = document.getElementById("submitBtn");
+    //Get references to important DOM elements//
+    const form = document.getElementById("itemForm"); //The Add Item form element//
+    const feedback = document.getElementById("feedbackMsg");//The area to display feedback messages to the user//
+    const submitBtn = document.getElementById("submitBtn"); //The submit button element//
+     /*
+        Function: setFeedback
+        Purpose: Updates the feedback area with a message and visual tone (success, error, muted)
+        Parameters:
+            - message: Text message to display
+            - tone: Optional string for CSS class to indicate message type (default = "success")
+        Notes:
+            - Shows real-time feedback to improve user experience
+            - Removes the 'hidden' class to ensure the message is visible
+    */
 
     function setFeedback(message, tone = "success") {
         feedback.textContent = message;
         feedback.className = `status ${tone}`;
         feedback.classList.remove("hidden");
     }
+    /*
+        Event Listener: form submission
+        Purpose: Handles the Add Item form submission asynchronously
+        Steps:
+            1. Prevent default form submission to avoid page refresh
+            2. Disable submit button to prevent multiple submissions
+            3. Collect and clean form input (trim whitespace and convert numbers)
+            4. Send data to backend via Fetch API
+            5. Handle server response and display appropriate feedback
+            6. Catch unexpected errors and notify the user
+            7. Re-enable submit button after request completes
+    */
 
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
 
+//Disables submit button to prevent multiple submissions//
         submitBtn.disabled = true;
         setFeedback("Saving item…", "muted");
 
+//Collect and sanitize user input from the form - Ensures input is safe and correct before using it//
         const data = {
-            name: form.name.value.trim(),
-                sku: form.sku.value.trim(),
-            description: form.description.value.trim(),
-            price: Number.parseFloat(form.price.value),
-            quantity: Number.parseInt(form.quantity.value, 10),
+            name: form.name.value.trim(), //Remove extra spaces from product name//
+                sku: form.sku.value.trim(), //Remove extra spaces from SKU//
+            description: form.description.value.trim(), //Clean description text//
+            price: Number.parseFloat(form.price.value), //Convert price input to a floating-point (decimal) number//
+            quantity: Number.parseInt(form.quantity.value, 10), //Convert quantity input to an integer (whole number)//
         };
 
+        //try-catch block to handle potential errors gracefully//
         try {
+             /*
+                Send data to backend endpoint /items
+                Notes:
+                    - POST method is used for creating a new item
+                    - Content-Type header set to application/json
+                    - Body is JSON stringified user data
+            */
             const res = await fetch("/items", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data),
             });
-
+            //Check if server responded with an error//
             if (!res.ok) {
-                const errorText = (await res.json().catch(() => ({}))).error || "Unable to save item";
+                //Read error message from the JSON response and display it to the user//
+                const errorText = (await res.json().catch(() => ({}))).error || "Unable to save item"; //Default error message if server does not return any error message//
                 setFeedback(errorText, "error");
-                return;
+                return; //Exit the function early since request failed//
             }
-
+            //Success message: Display success message to user and reset form fields to add another item//
             setFeedback("Item added successfully!", "success");
-            form.reset();
+            form.reset(); //Resets form fields so user can add another item//
         } catch (err) {
+            //Catch any unexpected errors (e.g. network issues, server down) and log them for debugging//
             console.error("Error saving item:", err);
             setFeedback("Server error. Please try again.", "error");
         } finally {
+            //Re-enable the submit button regardless of success or failure//
             submitBtn.disabled = false;
         }
     });
