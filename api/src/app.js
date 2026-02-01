@@ -299,5 +299,3 @@ function createApp({ pool }) {
 }
 
 module.exports = { createApp };
-
-// Test
